@@ -19,6 +19,7 @@
     "sourceMap": true,
     "strictNullChecks": true,
     "target": "es5",
+    "types" : [],
     "lib": [
       "dom",
       "es2015"

@@ -4,6 +4,7 @@
     "typeRoots": [
       "node_modules/@types"
     ],
+    "moduleResolution": "node",
     "declaration": true,
     "forceConsistentCasingInFileNames": true,
     "module": "amd",
@@ -19,6 +20,7 @@
     "sourceMap": true,
     "strictNullChecks": true,
     "target": "es5",
+    "types" : [],
     "lib": [
       "dom",
       "es2015"
