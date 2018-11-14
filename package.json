@@ -23,7 +23,11 @@
     "streamed": "node \"./examples/streamed/server/server-cli.inlinesourcemap.js\" ./examples/streamed/epubs/",
     "embedded": "node \"./examples/embedded/embedded-server.js\"",
     "clean": "rimraf node_modules lib dist",
-    "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'"
+    "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'",
+    "build:examples": "npm run prepublish && npm run examples && npm run copy:all",
+    "copy:all": "npm run copy:r2-navigator && npm run copy:readium-cfi",
+    "copy:r2-navigator": "cp ./node_modules/@evidentpoint/r2-navigator-web/dist/r2-navigator-web.umd.js examples/streamed/readers/reader-JBKS/@evidentpoint/r2-navigator-web.js",
+    "copy:readium-cfi": "cp ./node_modules/readium-cfi-js/dist/readium-cfi.umd.js examples/streamed/readers/reader-JBKS/readium-cfi-js.js"
   },
   "dependencies": {
     "promise-polyfill": "^8.0.0",
