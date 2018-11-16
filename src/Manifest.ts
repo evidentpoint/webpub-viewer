@@ -45,7 +45,7 @@ export default class Manifest {
 
         // Respond immediately with the manifest from the store, if possible.
         if (store) {
-            const manifestString = await store.get("manifest");
+            const manifestString = <string> await store.get("manifest");
             if (manifestString) {
                 // Kick off a fetch to update the store for next time,
                 // but don't await it.

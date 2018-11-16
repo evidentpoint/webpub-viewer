@@ -53,8 +53,8 @@
       var publisher = new PublisherFont.default();
       var serif = new SerifFont.default();
       var sans = new SansFont.default();
-      var fontSizes = [ 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ];
-      var defaultFontSize = 20;
+      var fontSizes = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 ];
+      var defaultFontSize = 1;
       var day = new DayTheme.default();
       var sepia = new SepiaTheme.default();
       var night = new NightTheme.default();
@@ -66,8 +66,8 @@
       BookSettings.default.create({
         store: settingsStore,
         bookFonts: [publisher, serif, sans],
-        fontSizesInPixels: fontSizes,
-        defaultFontSizeInPixels: defaultFontSize,
+        fontSizes: fontSizes,
+        defaultFont: defaultFontSize,
         bookThemes: [day, sepia, night],
         bookViews: [paginator, scroller]
       }).then(function (settings) {

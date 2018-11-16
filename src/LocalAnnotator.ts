@@ -15,7 +15,7 @@ export default class LocalAnnotator implements Annotator {
     }
 
     public async getLastReadingPosition(): Promise<any> {
-        const positionString = await this.store.get(LocalAnnotator.LAST_READING_POSITION);
+        const positionString = <string> await this.store.get(LocalAnnotator.LAST_READING_POSITION);
         if (positionString) {
             const position = JSON.parse(positionString);
             return new Promise(resolve => resolve(position));

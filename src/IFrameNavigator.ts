@@ -4,7 +4,7 @@ import Navigator from "./Navigator";
 import {
     Publication,
     RenditionContext as R2RenditionContext,
-    // SettingName,
+    SettingName,
     Rendition,
     IFrameLoader,
     R2ContentViewFactory,
@@ -231,9 +231,11 @@ export default class IFrameNavigator implements Navigator {
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
         const publication: Publication = await Publication.fromURL(config.manifestUrl.href);
         const loader = new IFrameLoader(publication.getBaseURI());
+        loader.setReadiumCssBasePath('/readerJBKS/readium-css');
         const cvf = new R2ContentViewFactory(loader);
         const rendition = new Rendition(publication, navigator.iframeRoot, cvf);
         rendition.setViewAsVertical(false);
+        navigator.renditionContext = new R2RenditionContext(rendition, loader);
 
         // Get available width
         const availableWidth = navigator.getAvailableWidth();
@@ -251,9 +253,8 @@ export default class IFrameNavigator implements Navigator {
         await rendition.render();
         rendition.viewport.enableScroll(false);
         await rendition.viewport.renderAtOffset(0);
-        navigator.handleIFrameLoad();
+        await navigator.handleIFrameLoad();
 
-        navigator.renditionContext = new R2RenditionContext(rendition, loader);
         // @ts-ignore
         window.context = navigator.renditionContext;
         // @ts-ignore
@@ -522,8 +523,12 @@ export default class IFrameNavigator implements Navigator {
         this.handleResize();
     }
 
-    private updateFontSize(): void {
-        this.handleResize();
+    private updateFontSize(newFontSize: number): void {
+        const fontSettings = [{
+            name: SettingName.FontSize,
+            value: newFontSize * 100,
+        }];
+        this.renditionContext.rendition.updateViewSettings(fontSettings);
     }
 
     private updateBookView(): void {
@@ -1123,9 +1128,9 @@ export default class IFrameNavigator implements Navigator {
         const selectedView = this.settings.getSelectedView();
         const oldPosition = selectedView.getCurrentPosition();
 
-        const fontSize = this.settings.getSelectedFontSize();
+        // const fontSize = this.settings.getSelectedFontSize();
         const body = HTMLUtilities.findRequiredIframeElement(this.iframe.contentDocument, "body") as HTMLBodyElement;
-        body.style.fontSize = fontSize;
+        // body.style.fontSize = fontSize;
         body.style.lineHeight = "1.5";
 
         // Disable text selection as we can’t handle this correctly anyway
@@ -1134,19 +1139,19 @@ export default class IFrameNavigator implements Navigator {
         body.style.msUserSelect = "none";
         body.style.userSelect = "none";
 
-        const fontSizeNumber = parseInt(fontSize.slice(0, -2));
-        let sideMargin = fontSizeNumber * 2;
+        // const fontSizeNumber = parseInt(fontSize.slice(0, -2));
+        // let sideMargin = fontSizeNumber * 2;
 
-        if (BrowserUtilities.getWidth() > fontSizeNumber * 45) {
-            const extraMargin = Math.floor((BrowserUtilities.getWidth() - fontSizeNumber * 40) / 2);
-            sideMargin = sideMargin + extraMargin;
-        }
-        if (this.paginator) {
-            this.paginator.sideMargin = sideMargin;
-        }
-        if (this.scroller) {
-            this.scroller.sideMargin = sideMargin;
-        }
+        // if (BrowserUtilities.getWidth() > fontSizeNumber * 45) {
+            // const extraMargin = Math.floor((BrowserUtilities.getWidth() - fontSizeNumber * 40) / 2);
+            // sideMargin = sideMargin + extraMargin;
+        // }
+        // if (this.paginator) {
+            // this.paginator.sideMargin = sideMargin;
+        // }
+        // if (this.scroller) {
+            // this.scroller.sideMargin = sideMargin;
+        // }
 
         // If the links are hidden, show them temporarily
         // to determine the top and bottom heights.

@@ -35,10 +35,10 @@ export interface BookSettingsConfig {
     bookFonts: BookFont[],
 
     /** Array of font sizes in pixels sorted from smallest to largest. */
-    fontSizesInPixels: number[],
+    fontSizes: number[],
 
     /** Initial font size to use until the user makes a selection. */
-    defaultFontSizeInPixels?: number,
+    defaultFontSize?: number,
 
     /** Array of BookThemes */
     bookThemes: BookTheme[],
@@ -51,7 +51,7 @@ export default class BookSettings {
     private readonly store: Store;
     private readonly bookFonts: BookFont[];
     private fontButtons: { [key: string]: HTMLButtonElement };
-    private readonly fontSizes: string[];
+    private readonly fontSizes: number[];
     private fontSizeButtons: { [key: string]: HTMLButtonElement };
     private readonly bookThemes: BookTheme[];
     private themeButtons: { [key: string]: HTMLButtonElement };
@@ -61,12 +61,12 @@ export default class BookSettings {
     private offlineStatusElement: HTMLElement;
 
     private fontChangeCallback: () => void = () => {};
-    private fontSizeChangeCallback: () => void = () => {};
+    private fontSizeChangeCallback: (newFontSize: number) => void = () => {};
     private themeChangeCallback: () => void = () => {};
     private viewChangeCallback: () => void = () => {};
 
     private selectedFont: BookFont;
-    private selectedFontSize: string;
+    private selectedFontSize: number;
     private selectedTheme: BookTheme;
     private selectedView: BookView;
 
@@ -76,13 +76,12 @@ export default class BookSettings {
     private static readonly SELECTED_VIEW_KEY = "settings-selected-view";
 
     public static async create(config: BookSettingsConfig) {
-        const fontSizes = config.fontSizesInPixels.map(fontSize => fontSize + "px");
-        const settings = new this(config.store, config.bookFonts, fontSizes, config.bookThemes, config.bookViews);
-        await settings.initializeSelections(config.defaultFontSizeInPixels ? config.defaultFontSizeInPixels + "px" : undefined);
+        const settings = new this(config.store, config.bookFonts, config.fontSizes, config.bookThemes, config.bookViews);
+        await settings.initializeSelections(config.defaultFontSize ? config.defaultFontSize : undefined);
         return settings;
     }
 
-    protected constructor(store: Store, bookFonts: BookFont[], fontSizes: string[], bookThemes: BookTheme[], bookViews: BookView[]) {
+    protected constructor(store: Store, bookFonts: BookFont[], fontSizes: number[], bookThemes: BookTheme[], bookViews: BookView[]) {
         this.store = store;
         this.bookFonts = bookFonts;
         this.fontSizes = fontSizes;
@@ -90,7 +89,7 @@ export default class BookSettings {
         this.bookViews = bookViews;
     }
 
-    private async initializeSelections(defaultFontSize?: string): Promise<void> {
+    private async initializeSelections(defaultFontSize?: number): Promise<void> {
         if (this.bookFonts.length >= 1) {
             let selectedFont = this.bookFonts[0];
             const selectedFontName = await this.store.get(BookSettings.SELECTED_FONT_KEY);
@@ -107,7 +106,7 @@ export default class BookSettings {
 
         if (this.fontSizes.length >= 1) {
             // First, check if the user has previously set a font size.
-            let selectedFontSize = await this.store.get(BookSettings.SELECTED_FONT_SIZE_KEY);
+            let selectedFontSize = <number> await this.store.get(BookSettings.SELECTED_FONT_SIZE_KEY);
             let selectedFontSizeIsAvailable = (selectedFontSize && this.fontSizes.indexOf(selectedFontSize) !== -1);
             // If not, or the user selected a size that's no longer an option, is there a default font size?
             if ((!selectedFontSize || !selectedFontSizeIsAvailable) && defaultFontSize) {
@@ -226,7 +225,7 @@ export default class BookSettings {
         this.fontChangeCallback = callback;
     }
 
-    public onFontSizeChange(callback: () => void) {
+    public onFontSizeChange(callback: (newFontSize: number) => void) {
         this.fontSizeChangeCallback = callback;
     }
 
@@ -260,7 +259,7 @@ export default class BookSettings {
                 if (currentFontSizeIndex > 0) {
                     const newFontSize = this.fontSizes[currentFontSizeIndex - 1];
                     this.selectedFontSize = newFontSize;
-                    this.fontSizeChangeCallback();
+                    this.fontSizeChangeCallback(newFontSize);
                     this.updateFontSizeButtons();
                     this.storeSelectedFontSize(newFontSize);
                 }
@@ -272,7 +271,7 @@ export default class BookSettings {
                 if (currentFontSizeIndex < this.fontSizes.length - 1) {
                     const newFontSize = this.fontSizes[currentFontSizeIndex + 1];
                     this.selectedFontSize = newFontSize;
-                    this.fontSizeChangeCallback();
+                    this.fontSizeChangeCallback(newFontSize);
                     this.updateFontSizeButtons();
                     this.storeSelectedFontSize(newFontSize);
                 }
@@ -368,7 +367,7 @@ export default class BookSettings {
         return this.selectedFont;
     }
 
-    public getSelectedFontSize(): string {
+    public getSelectedFontSize(): number {
         return this.selectedFontSize;
     }
 
@@ -388,7 +387,7 @@ export default class BookSettings {
         return this.store.set(BookSettings.SELECTED_FONT_KEY, font.name);
     }
 
-    private async storeSelectedFontSize(fontSize: string): Promise<void> {
+    private async storeSelectedFontSize(fontSize: number): Promise<void> {
         return this.store.set(BookSettings.SELECTED_FONT_SIZE_KEY, fontSize);
     }
 

@@ -19,7 +19,8 @@ const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNaviga
     const publisher = new PublisherFont();
     const serif = new SerifFont();
     const sans = new SansFont();
-    const fontSizes = [ 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ];
+    // const fontSizes = [ 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ];
+    const fontSizes = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 ];
     const day = new DayTheme();
     const sepia = new SepiaTheme();
     const night = new NightTheme();
@@ -29,8 +30,8 @@ const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNaviga
     const settings = await BookSettings.create({
         store: settingsStore,
         bookFonts: [publisher, serif, sans],
-        fontSizesInPixels: fontSizes,
-        defaultFontSizeInPixels: 20,
+        fontSizes: fontSizes,
+        defaultFontSize: 1,
         bookThemes: [day, sepia, night],
         bookViews: [paginator, scroller]
     });
