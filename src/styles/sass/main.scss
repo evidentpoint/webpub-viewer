@@ -412,7 +412,11 @@ a {
 // /info
 
 iframe {
-  opacity: 0;
+  border: none;
+}
+
+#iframe-container {
+  // opacity: 0;
 //  transition: opacity 100ms ease-in; /* This forces relayout, which makes the TOC flash */
 
   &.left-hover {
@@ -422,6 +426,18 @@ iframe {
   &.right-hover {
     background: linear-gradient(to left, transparentize($ui-light-gray, 0.1), transparentize($ui-light-gray, 0.1) 28%, $ui-white 30%, $ui-white);
   }
+}
+
+.flip-page-btn {
+  display: inline-block;
+  border: 1px solid rgb(7, 7, 7);
+  background: rgba(50, 50, 50, 0.1);
+  color: rgb(7, 7, 7);
+  width: 50px,
+}
+
+.page-container {
+  display: flex;
 }
 
 .scrolling-suggestion {
@@ -512,7 +528,7 @@ iframe {
     color: $ui-dark-gray;
   }
 
-  iframe {
+  #iframe-container {
     &.left-hover {
       background: linear-gradient(to right, darken($sepia-bg, 10%), darken($sepia-bg, 10%) 28%, $sepia-bg 30%, $sepia-bg);
     }
@@ -596,7 +612,7 @@ iframe {
     color: $ui-light-gray;
   }
 
-  iframe {
+  #iframe-container {
     &.left-hover {
       background: linear-gradient(to right, lighten($ui-black, 10%), lighten($ui-black, 10%) 28%, $ui-black 30%, $ui-black);
     }

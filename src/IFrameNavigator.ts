@@ -1,4 +1,20 @@
 import Navigator from "./Navigator";
+
+// @ts-ignore
+import {
+    Publication,
+    RenditionContext as R2RenditionContext,
+    // SettingName,
+    Rendition,
+    IFrameLoader,
+    R2ContentViewFactory,
+    // @ts-ignore
+  } from '@evidentpoint/r2-navigator-web';
+
+// import {
+//     EventHandling,
+// } from 'r2-glue-js';
+
 import Store from "./Store";
 import Cacher from "./Cacher";
 import { CacheStatus } from "./Cacher";
@@ -19,12 +35,12 @@ import * as BrowserUtilities from "./BrowserUtilities";
 import * as HTMLUtilities from "./HTMLUtilities";
 import * as IconLib from "./IconLib";
 
-const epubReadingSystemObject: EpubReadingSystemObject = {
-    name: "Webpub viewer",
-    version: "0.1.0"
-};
+// const epubReadingSystemObject: EpubReadingSystemObject = {
+//     name: "Webpub viewer",
+//     version: "0.1.0"
+// };
 
-const epubReadingSystem = Object.freeze(epubReadingSystemObject);
+// const epubReadingSystem = Object.freeze(epubReadingSystemObject);
 
 const upLinkTemplate = (href: string, label: string, ariaLabel: string) => `
   <a rel="up" href='${href}' aria-label="${ariaLabel}">
@@ -37,7 +53,32 @@ const upLinkTemplate = (href: string, label: string, ariaLabel: string) => `
 `;
 
 const template = `
-  <nav class="publication">
+    <main style="overflow: hidden" tabindex=-1>
+        <div class="loading" style="display:none;">
+            ${IconLib.icons.loading}
+        </div>
+        <div class="error" style="display:none;">
+            <span>
+            ${IconLib.icons.error}
+            </span>
+            <span>There was an error loading this page.</span>
+            <button class="go-back">Go back</button>
+            <button class="try-again">Try again</button>
+        </div>
+        <div id="top-control-bar" class="info top">  
+            <span class="book-title"></span>
+        </div>
+        <div class="page-container">
+            <button id="prev-page-btn" class="flip-page-btn prev">\<</button>
+            <div id="iframe-container"></div>
+            <button id="next-page-btn" class="flip-page-btn next">\></button>
+        </div>
+        <div class="info bottom">
+            <span class="chapter-position"></span>
+            <span class="chapter-title"></span>
+        </div>
+    </main>
+    <nav class="publication">
     <div class="controls-trigger">
       <button class="trigger" aria-haspopup="true" aria-expanded="true">
         ${IconLib.icons.menu}
@@ -71,30 +112,9 @@ const template = `
     </div>
     <!-- /controls -->
   </nav>
-  <main style="overflow: hidden" tabindex=-1>
-    <div class="loading" style="display:none;">
-      ${IconLib.icons.loading}
-    </div>
-    <div class="error" style="display:none;">
-      <span>
-        ${IconLib.icons.error}
-      </span>
-      <span>There was an error loading this page.</span>
-      <button class="go-back">Go back</button>
-      <button class="try-again">Try again</button>
-    </div>
-    <div class="info top">
-      <span class="book-title"></span>
-    </div>
-    <iframe allowtransparency="true" title="book text" style="border:0; overflow: hidden;"></iframe>
-    <div class="info bottom">
-      <span class="chapter-position"></span>
-      <span class="chapter-title"></span>
-    </div>
-  </main>
   <nav class="publication">
     <div class="controls">
-      <ul class="links bottom active">
+      <ul id="bottom-control-bar" class="links bottom active">
         <li>
           <a rel="prev" class="disabled" role="button" aria-labelledby="previous-label">
           ${IconLib.icons.previous}
@@ -185,11 +205,16 @@ export default class IFrameNavigator implements Navigator {
     private bookTitle: HTMLSpanElement;
     private chapterTitle: HTMLSpanElement;
     private chapterPosition: HTMLSpanElement;
-    private newPosition: ReadingPosition | null;
+    // private newPosition: ReadingPosition | null;
+    // @ts-ignore
     private newElementId: string | null;
+    // @ts-ignore
     private isBeingStyled: boolean;
     private isLoading: boolean;
     private canFullscreen: boolean = (document as any).fullscreenEnabled || (document as any).webkitFullscreenEnabled || (document as any).mozFullScreenEnabled || (document as any).msFullscreenEnabled;
+    // @ts-ignore
+    private renditionContext: R2RenditionContext;
+    private iframeRoot: HTMLElement;
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -201,9 +226,78 @@ export default class IFrameNavigator implements Navigator {
             config.upLink || null,
             config.allowFullscreen || null
         );
-
         await navigator.start(config.element, config.manifestUrl);
+
+        navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
+        const publication: Publication = await Publication.fromURL(config.manifestUrl.href);
+        const loader = new IFrameLoader(publication.getBaseURI());
+        const cvf = new R2ContentViewFactory(loader);
+        const rendition = new Rendition(publication, navigator.iframeRoot, cvf);
+        rendition.setViewAsVertical(false);
+
+        // Get available width
+        const availableWidth = navigator.getAvailableWidth();
+
+        // Get height for the iframes
+        const availableHeight = navigator.getAvailableHeight();
+
+        rendition.viewport.setViewportSize(availableWidth, availableHeight);
+        rendition.viewport.setPrefetchSize(Math.ceil(availableWidth * 0.1));
+        rendition.setPageLayout({
+            spreadMode: 3,
+            pageWidth: 0,
+            pageHeight: 0,
+        });
+        await rendition.render();
+        rendition.viewport.enableScroll(false);
+        await rendition.viewport.renderAtOffset(0);
+        navigator.handleIFrameLoad();
+
+        navigator.renditionContext = new R2RenditionContext(rendition, loader);
+        // @ts-ignore
+        window.context = navigator.renditionContext;
+        // @ts-ignore
+        // window.eventHandling = EventHandling;
+
+        // await navigator.start(config.element, config.manifestUrl);
         return navigator;
+    }
+
+    // Get available height for iframe container to sit within
+    private getAvailableHeight(): number {
+        const topBar = document.getElementById('top-control-bar');
+        let topHeight = 0;
+        if (topBar) {
+            const topRect = topBar.getBoundingClientRect();
+            topHeight = topRect.height;
+        }
+        const bottomBar = document.getElementById('bottom-control-bar');
+        let bottomHeight = 0;
+        if (bottomBar) {
+            const bottomRect = bottomBar.getBoundingClientRect();
+            bottomHeight = bottomRect.height;
+        }
+
+        return window.innerHeight - topHeight - bottomHeight;
+    }
+
+    // Get available width for iframe container to sit within
+    // @ts-ignore
+    private getAvailableWidth(): number {
+        const prevBtn = document.getElementById('prev-page-btn');
+        let prevBtnWidth = 0;
+        if (prevBtn) {
+            const rect = prevBtn.getBoundingClientRect();
+            prevBtnWidth = rect.width;
+        }
+        const nextBtn = document.getElementById('next-page-btn');
+        let nextBtnWidth = 0;
+        if (nextBtn) {
+            const rect = nextBtn.getBoundingClientRect();
+            nextBtnWidth = rect.width;
+        }
+
+        return window.innerWidth - prevBtnWidth - nextBtnWidth;
     }
 
     protected constructor(
@@ -245,7 +339,7 @@ export default class IFrameNavigator implements Navigator {
         element.innerHTML = template;
         this.manifestUrl = manifestUrl;
         try {
-            this.iframe = HTMLUtilities.findRequiredElement(element, "iframe") as HTMLIFrameElement;
+            this.iframe = document.createElement('iframe'); // HTMLUtilities.findRequiredElement(element, "iframe") as HTMLIFrameElement;
             this.scrollingSuggestion = HTMLUtilities.findRequiredElement(element, ".scrolling-suggestion") as HTMLAnchorElement;
             this.nextChapterLink = HTMLUtilities.findRequiredElement(element, "a[rel=next]") as HTMLAnchorElement;
             this.previousChapterLink = HTMLUtilities.findRequiredElement(element, "a[rel=prev]") as HTMLAnchorElement;
@@ -265,7 +359,7 @@ export default class IFrameNavigator implements Navigator {
             this.chapterTitle = HTMLUtilities.findRequiredElement(this.infoBottom, "span[class=chapter-title]") as HTMLSpanElement;
             this.chapterPosition = HTMLUtilities.findRequiredElement(this.infoBottom, "span[class=chapter-position]") as HTMLSpanElement;
             this.menuControl = HTMLUtilities.findRequiredElement(element, "button.trigger") as HTMLButtonElement;
-            this.newPosition = null;
+            // this.newPosition = null;
             this.newElementId = null;
             this.isBeingStyled = true;
             this.isLoading = true;
@@ -325,7 +419,8 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private setupEvents(): void {
-        this.iframe.addEventListener("load", this.handleIFrameLoad.bind(this));
+        // this.iframe.addEventListener("load", this.handleIFrameLoad.bind(this));
+
 
         const delay: number = 200;
         let timeout: any;
@@ -360,6 +455,16 @@ export default class IFrameNavigator implements Navigator {
         this.settingsView.addEventListener("keydown", this.hideSettingsOnEscape.bind(this));
 
         window.addEventListener("keydown", this.handleKeyboardNavigation.bind(this));
+
+        const nextPageBtn = document.getElementById('next-page-btn');
+        if (nextPageBtn) {
+            nextPageBtn.addEventListener('click', () => {this.renditionContext.navigator.nextScreen()});
+        }
+
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        if (prevPageBtn) {
+            prevPageBtn.addEventListener('click', () => {this.renditionContext.navigator.previousScreen()});
+        }
 
         if (this.allowFullscreen && this.canFullscreen) {
             document.addEventListener("fullscreenchange", this.toggleFullscreenIcon.bind(this));
@@ -512,6 +617,63 @@ export default class IFrameNavigator implements Navigator {
         statusElement.innerHTML = statusMessage;
     }
 
+    private createTOC(parentElement: Element, links: Array<Link>): void {
+        const listElement: HTMLOListElement = document.createElement("ol");
+        let lastLink: HTMLAnchorElement | null = null;
+        for (const link of links) {
+            const listItemElement : HTMLLIElement = document.createElement("li");
+            const linkElement: HTMLAnchorElement = document.createElement("a");
+            const spanElement: HTMLSpanElement = document.createElement("span");
+            linkElement.tabIndex = -1;
+            let href = "";
+            if (link.href) {
+                href = new URL(link.href, this.manifestUrl.href).href;
+        
+                linkElement.href = href;
+                linkElement.innerHTML = link.title || "";
+                listItemElement.appendChild(linkElement);
+            } else {
+                spanElement.innerHTML = link.title || "";
+                listItemElement.appendChild(spanElement);
+            }
+            if (link.children && link.children.length > 0) {
+                this.createTOC(listItemElement, link.children);
+            }
+
+            listElement.appendChild(listItemElement);
+            lastLink = linkElement;
+        }
+
+        // Trap keyboard focus inside the TOC while it's open.
+        if (lastLink) {
+            this.setupModalFocusTrap(this.tocView, this.contentsControl, lastLink);
+        }
+
+        listElement.addEventListener("click", (event:Event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if(event.target && (event.target as HTMLElement).tagName.toLowerCase() === "a") {
+                let linkElement = event.target as HTMLAnchorElement;
+
+                if (linkElement.className.indexOf("active") !== -1) {
+                    // This TOC item is already loaded. Hide the TOC
+                    // but don't navigate.
+                    this.hideTOC();
+                } else {
+                    // Set focus back to the contents toggle button so screen readers
+                    // don't get stuck on a hidden link.
+                    this.contentsControl.focus();
+                    this.navigate({
+                        resource: linkElement.href,
+                        position: 0
+                    });
+                }
+            }
+        });
+
+        parentElement.appendChild(listElement);
+    }
+
     private async loadManifest(): Promise<void> {
         try {
             const manifest: Manifest = await Manifest.getManifest(this.manifestUrl, this.store);
@@ -520,63 +682,7 @@ export default class IFrameNavigator implements Navigator {
             if (toc.length) {
                 this.contentsControl.className = "contents";
 
-                const createTOC = (parentElement: Element, links: Array<Link>) => {
-                    const listElement: HTMLOListElement = document.createElement("ol");
-                    let lastLink: HTMLAnchorElement | null = null;
-                    for (const link of links) {
-                        const listItemElement : HTMLLIElement = document.createElement("li");
-                        const linkElement: HTMLAnchorElement = document.createElement("a");
-                        const spanElement: HTMLSpanElement = document.createElement("span");
-                        linkElement.tabIndex = -1;
-                        let href = "";
-                        if (link.href) {
-                            href = new URL(link.href, this.manifestUrl.href).href;
-                    
-                            linkElement.href = href;
-                            linkElement.innerHTML = link.title || "";
-                            listItemElement.appendChild(linkElement);
-                        } else {
-                            spanElement.innerHTML = link.title || "";
-                            listItemElement.appendChild(spanElement);
-                        }
-                        if (link.children && link.children.length > 0) {
-                            createTOC(listItemElement, link.children);
-                        }
-
-                        listElement.appendChild(listItemElement);
-                        lastLink = linkElement;
-                    }
-
-                    // Trap keyboard focus inside the TOC while it's open.
-                    if (lastLink) {
-                        this.setupModalFocusTrap(this.tocView, this.contentsControl, lastLink);
-                    }
-
-                    listElement.addEventListener("click", (event:Event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        if(event.target && (event.target as HTMLElement).tagName.toLowerCase() === "a") {
-                            let linkElement = event.target as HTMLAnchorElement;
-
-                            if (linkElement.className.indexOf("active") !== -1) {
-                                // This TOC item is already loaded. Hide the TOC
-                                // but don't navigate.
-                                this.hideTOC();
-                            } else {
-                                // Set focus back to the contents toggle button so screen readers
-                                // don't get stuck on a hidden link.
-                                this.contentsControl.focus();
-                                this.navigate({
-                                    resource: linkElement.href,
-                                    position: 0
-                                });
-                            }
-                        }
-                    });
-
-                    parentElement.appendChild(listElement);
-                }
-                createTOC(this.tocView, toc);
+                this.createTOC(this.tocView, toc);
             } else {
                 (this.contentsControl.parentElement as any).style.display = "none";
             }
@@ -614,13 +720,13 @@ export default class IFrameNavigator implements Navigator {
             }
 
             if (lastReadingPosition) {
-                this.navigate(lastReadingPosition);
+                // this.navigate(lastReadingPosition);
             } else if (startUrl) {
-                const position = {
-                    resource: startUrl,
-                    position: 0
-                };
-                this.navigate(position);
+                // const position = {
+                //     resource: startUrl,
+                //     position: 0
+                // };
+                // this.navigate(position);
             }
 
             return new Promise<void>(resolve => resolve());
@@ -632,89 +738,88 @@ export default class IFrameNavigator implements Navigator {
 
     private async handleIFrameLoad(): Promise<void> {
         this.errorMessage.style.display = "none";
-        this.showLoadingMessageAfterDelay();
+        // this.showLoadingMessageAfterDelay();
         try {
             this.hideTOC();
 
-            let bookViewPosition = 0;
-            if (this.newPosition) {
-                bookViewPosition = this.newPosition.position;
-                this.newPosition = null;
-            }
-            this.updateFont();
-            this.updateFontSize();
+            // let bookViewPosition = 0;
+            // if (this.newPosition) {
+            //     bookViewPosition = this.newPosition.position;
+            //     this.newPosition = null;
+            // }
+            // this.updateFont();
+            // this.updateFontSize();
             this.updateBookView();
-            this.settings.getSelectedFont().start();
-            this.settings.getSelectedTheme().start();
-            this.settings.getSelectedView().start(bookViewPosition);
+            // this.settings.getSelectedFont().start();
+            // this.settings.getSelectedTheme().start();
+            // this.settings.getSelectedView().start(bookViewPosition);
 
+            // if (this.newElementId) {
+            //     this.settings.getSelectedView().goToElement(this.newElementId);
+            //     this.newElementId = null;
+            // }
 
-            if (this.newElementId) {
-                this.settings.getSelectedView().goToElement(this.newElementId);
-                this.newElementId = null;
-            }
+            // let currentLocation = this.iframe.src;
+            // if (this.iframe.contentDocument && this.iframe.contentDocument.location && this.iframe.contentDocument.location.href) {
+            //     currentLocation = this.iframe.contentDocument.location.href;
+            // }
 
-            let currentLocation = this.iframe.src;
-            if (this.iframe.contentDocument && this.iframe.contentDocument.location && this.iframe.contentDocument.location.href) {
-                currentLocation = this.iframe.contentDocument.location.href;
-            }
+            // if (currentLocation.indexOf("#") !== -1) {
+            //     // Letting the iframe load the anchor itself doesn't always work.
+            //     // For example, with CSS column-based pagination, you can end up
+            //     // between two columns, and we can't reset the position in some
+            //     // browsers. Instead, we grab the element id and reload the iframe
+            //     // without it, then let the view figure out how to go to that element
+            //     // on the next load event.
 
-            if (currentLocation.indexOf("#") !== -1) {
-                // Letting the iframe load the anchor itself doesn't always work.
-                // For example, with CSS column-based pagination, you can end up
-                // between two columns, and we can't reset the position in some
-                // browsers. Instead, we grab the element id and reload the iframe
-                // without it, then let the view figure out how to go to that element
-                // on the next load event.
+            //     const elementId = currentLocation.slice(currentLocation.indexOf("#") + 1);
+            //     // Set the element to go to the next time the iframe loads.
+            //     this.newElementId = elementId;
+            //     // Reload the iframe without the anchor.
+            //     this.iframe.src = currentLocation.slice(0, currentLocation.indexOf("#"));
+            //     return new Promise<void>(resolve => resolve());
+            // }
 
-                const elementId = currentLocation.slice(currentLocation.indexOf("#") + 1);
-                // Set the element to go to the next time the iframe loads.
-                this.newElementId = elementId;
-                // Reload the iframe without the anchor.
-                this.iframe.src = currentLocation.slice(0, currentLocation.indexOf("#"));
-                return new Promise<void>(resolve => resolve());
-            }
-
-            this.updatePositionInfo();
+            // this.updatePositionInfo();
 
             const manifest = await Manifest.getManifest(this.manifestUrl, this.store);
-            const previous = manifest.getPreviousSpineItem(currentLocation);
-            if (previous && previous.href) {
-                this.previousChapterLink.href = new URL(previous.href, this.manifestUrl.href).href;
-                this.previousChapterLink.className = "";
-            } else {
-                this.previousChapterLink.removeAttribute("href");
-                this.previousChapterLink.className = "disabled";
-                this.handleRemoveHover();
-            }
+            // const previous = manifest.getPreviousSpineItem(currentLocation);
+            // if (previous && previous.href) {
+            //     this.previousChapterLink.href = new URL(previous.href, this.manifestUrl.href).href;
+            //     this.previousChapterLink.className = "";
+            // } else {
+            //     this.previousChapterLink.removeAttribute("href");
+            //     this.previousChapterLink.className = "disabled";
+            //     this.handleRemoveHover();
+            // }
 
-            const next = manifest.getNextSpineItem(currentLocation);
-            if (next && next.href) {
-                this.nextChapterLink.href = new URL(next.href, this.manifestUrl.href).href;
-                this.nextChapterLink.className = "";
-            } else {
-                this.nextChapterLink.removeAttribute("href");
-                this.nextChapterLink.className = "disabled";
-                this.handleRemoveHover();
-            }
+            // const next = manifest.getNextSpineItem(currentLocation);
+            // if (next && next.href) {
+            //     this.nextChapterLink.href = new URL(next.href, this.manifestUrl.href).href;
+            //     this.nextChapterLink.className = "";
+            // } else {
+            //     this.nextChapterLink.removeAttribute("href");
+            //     this.nextChapterLink.className = "disabled";
+            //     this.handleRemoveHover();
+            // }
 
-            this.setActiveTOCItem(currentLocation);
+            // this.setActiveTOCItem(currentLocation);
 
             if (manifest.metadata.title) {
                 this.bookTitle.innerHTML = manifest.metadata.title;
             }
 
             let chapterTitle;
-            const spineItem = manifest.getSpineItem(currentLocation);
-            if (spineItem !== null) {
-                chapterTitle = spineItem.title;
-            }
-            if (!chapterTitle) {
-                const tocItem = manifest.getTOCItem(currentLocation);
-                if (tocItem !== null && tocItem.title) {
-                    chapterTitle = tocItem.title;
-                }
-            }
+            // const spineItem = manifest.getSpineItem(currentLocation);
+            // if (spineItem !== null) {
+            //     chapterTitle = spineItem.title;
+            // }
+            // if (!chapterTitle) {
+            //     const tocItem = manifest.getTOCItem(currentLocation);
+            //     if (tocItem !== null && tocItem.title) {
+            //         chapterTitle = tocItem.title;
+            //     }
+            // }
 
             if (chapterTitle) {
                 this.chapterTitle.innerHTML = "(" + chapterTitle + ")";
@@ -722,17 +827,17 @@ export default class IFrameNavigator implements Navigator {
                 this.chapterTitle.innerHTML = "(Current Chapter)";
             }
 
-            if (this.eventHandler) {
-                this.eventHandler.setupEvents(this.iframe.contentDocument);
-            }
+            // if (this.eventHandler) {
+                // this.eventHandler.setupEvents(this.iframe.contentDocument);
+            // }
 
-            if (this.annotator) {
-                await this.saveCurrentReadingPosition();
-            }
-            this.hideLoadingMessage();
-            this.showIframeContents();
+            // if (this.annotator) {
+            //     await this.saveCurrentReadingPosition();
+            // }
+            // this.hideLoadingMessage();
+            // this.showIframeContents();
 
-            Object.defineProperty(((this.iframe.contentWindow as any).navigator as EpubReadingSystem), "epubReadingSystem", {value: epubReadingSystem, writable: false});
+            // Object.defineProperty(((this.iframe.contentWindow as any).navigator as EpubReadingSystem), "epubReadingSystem", {value: epubReadingSystem, writable: false});
 
             return new Promise<void>(resolve => resolve());
         } catch (err) {
@@ -1083,35 +1188,39 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private updatePositionInfo() {
-        if (this.settings.getSelectedView() === this.paginator) {
-            const currentPage = Math.round(this.paginator.getCurrentPage());
-            const pageCount = Math.round(this.paginator.getPageCount());
-            this.chapterPosition.innerHTML = "Page " + currentPage + " of " + pageCount;
-        } else {
+        // if (this.settings.getSelectedView() === this.paginator) {
+        //     const currentPage = Math.round(this.paginator.getCurrentPage());
+        //     const pageCount = Math.round(this.paginator.getPageCount());
+        //     this.chapterPosition.innerHTML = "Page " + currentPage + " of " + pageCount;
+        // } else {
             this.chapterPosition.innerHTML = "";
-        }
+        // }
     }
 
     private handlePreviousChapterClick(event: MouseEvent): void {
-        if (this.previousChapterLink.hasAttribute("href")) {
-            const position = {
-                resource: this.previousChapterLink.href,
-                position: 0
-            }
-            this.navigate(position);
-        }
+        // if (this.previousChapterLink.hasAttribute("href")) {
+        //     const position = {
+        //         resource: this.previousChapterLink.href,
+        //         position: 0
+        //     }
+        //     this.navigate(position);
+        // }
+
+        this.renditionContext.navigator.previousScreen();
         event.preventDefault();
         event.stopPropagation();
     }
 
     private handleNextChapterClick(event: MouseEvent): void {
-        if (this.nextChapterLink.hasAttribute("href")) {
-            const position = {
-                resource: this.nextChapterLink.href,
-                position: 0
-            };
-            this.navigate(position);
-        }
+        // if (this.nextChapterLink.hasAttribute("href")) {
+        //     const position = {
+        //         resource: this.nextChapterLink.href,
+        //         position: 0
+        //     };
+        //     this.navigate(position);
+        // }
+
+        this.renditionContext.navigator.nextScreen();
         event.preventDefault();
         event.stopPropagation();
     }
@@ -1145,16 +1254,16 @@ export default class IFrameNavigator implements Navigator {
         }
     }
 
-    private setActiveTOCItem(resource: string): void {
-        const allItems = Array.prototype.slice.call(this.tocView.querySelectorAll("li > a"));
-        for (const item of allItems) {
-            item.className = "";
-        }
-        const activeItem = this.tocView.querySelector('li > a[href^="' + resource  + '"]');
-        if (activeItem) {
-            activeItem.className = "active";
-        }
-    }
+    // private setActiveTOCItem(resource: string): void {
+    //     const allItems = Array.prototype.slice.call(this.tocView.querySelectorAll("li > a"));
+    //     for (const item of allItems) {
+    //         item.className = "";
+    //     }
+    //     const activeItem = this.tocView.querySelector('li > a[href^="' + resource  + '"]');
+    //     if (activeItem) {
+    //         activeItem.className = "active";
+    //     }
+    // }
 
     private handleSettingsClick(event: MouseEvent): void {
         this.hideTOC();
@@ -1177,7 +1286,7 @@ export default class IFrameNavigator implements Navigator {
     private navigate(readingPosition: ReadingPosition): void {
         this.hideIframeContents();
         this.showLoadingMessageAfterDelay();
-        this.newPosition = readingPosition;
+        // this.newPosition = readingPosition;
         if (readingPosition.resource.indexOf("#") === -1) {
             this.iframe.src = readingPosition.resource;
         } else {
@@ -1198,15 +1307,15 @@ export default class IFrameNavigator implements Navigator {
         }
     }
 
-    private showIframeContents() {
-        this.isBeingStyled = false;
-        // We set a timeOut so that settings can be applied when opacity is still 0
-        setTimeout(() => {
-            if (!this.isBeingStyled) {
-                this.iframe.style.opacity = "1";
-            }
-        }, 150);
-    }
+    // private showIframeContents() {
+    //     this.isBeingStyled = false;
+    //     // We set a timeOut so that settings can be applied when opacity is still 0
+    //     setTimeout(() => {
+    //         if (!this.isBeingStyled) {
+    //             this.iframe.style.opacity = "1";
+    //         }
+    //     }, 150);
+    // }
 
     private showLoadingMessageAfterDelay() {
         this.isLoading = true;
