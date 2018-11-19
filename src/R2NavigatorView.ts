@@ -5,10 +5,25 @@ import {
   RenditionContext as R2RenditionContext,
   Rendition,
   SpreadMode,
+  ViewportResizer
 } from '@evidentpoint/r2-navigator-web';
 
 export class R2NavigatorView {
   private rendCtx: R2RenditionContext;
+  private resizer?: ViewportResizer;
+
+  private viewAsVertical: boolean = false;
+  private enableScroll: boolean = false;
+
+  public constructor() {
+    this.updateSize = this.updateSize.bind(this);
+  }
+
+  public destroy(): void {
+    if (this.resizer) {
+      this.resizer.stopListenResize();
+    }
+  }
 
   public async loadPublication(pubUrl: string, root: HTMLElement): Promise<R2RenditionContext> {
     const publication: Publication = await Publication.fromURL(pubUrl);
@@ -16,28 +31,45 @@ export class R2NavigatorView {
     loader.setReadiumCssBasePath('/readerJBKS/readium-css');
     const cvf = new R2ContentViewFactory(loader);
     const rendition = new Rendition(publication, root, cvf);
-    rendition.setViewAsVertical(false);
+    rendition.setViewAsVertical(this.viewAsVertical);
 
-    // Get available width
-    const availableWidth = this.getAvailableWidth();
+    this.rendCtx = new R2RenditionContext(rendition, loader);
 
-    // Get height for the iframes
-    const availableHeight = this.getAvailableHeight();
+    this.updateSize(false);
 
-    rendition.viewport.setViewportSize(availableWidth, availableHeight);
-    rendition.viewport.setPrefetchSize(Math.ceil(availableWidth * 0.1));
     rendition.setPageLayout({
         spreadMode: SpreadMode.FitViewportDoubleSpread,
         pageWidth: 0,
         pageHeight: 0,
     });
     await rendition.render();
-    rendition.viewport.enableScroll(false);
+    rendition.viewport.enableScroll(this.enableScroll);
     
-    this.rendCtx = new R2RenditionContext(rendition, loader);
+    this.resizer = new ViewportResizer(this.rendCtx, this.updateSize);
+
     await this.rendCtx.navigator.gotoBegin();
 
     return this.rendCtx;
+  }
+
+  private updateSize(willRefreshLayout: boolean = true): void {
+    const availableWidth = this.getAvailableWidth();
+    const availableHeight = this.getAvailableHeight();
+
+    // this.viewportRoot.style.width = `${this.root.clientWidth}px`;
+    // this.viewportRoot.style.height = `${this.root.clientHeight}px`;
+
+    const scrollerWidthAdj = this.enableScroll ? 15 : 0;
+    const viewportWidth = availableWidth - scrollerWidthAdj;
+    const viewportHeight = availableHeight;
+
+    const viewportSize = this.viewAsVertical ? viewportHeight : viewportWidth;
+    const viewportSize2nd = this.viewAsVertical ? viewportWidth : viewportHeight;
+    this.rendCtx.rendition.viewport.setViewportSize(viewportSize, viewportSize2nd);
+    this.rendCtx.rendition.viewport.setPrefetchSize(Math.ceil(availableWidth * 0.1));
+    if (willRefreshLayout) {
+      this.rendCtx.rendition.refreshPageLayout();
+    }
   }
 
   // Get available height for iframe container to sit within
