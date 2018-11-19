@@ -1,14 +1,8 @@
 import Navigator from "./Navigator";
 
-// @ts-ignore
 import {
-    Publication,
     RenditionContext as R2RenditionContext,
     SettingName,
-    Rendition,
-    IFrameLoader,
-    R2ContentViewFactory,
-    // @ts-ignore
   } from '@evidentpoint/r2-navigator-web';
 
 // import {
@@ -34,6 +28,7 @@ import EventHandler from "./EventHandler";
 import * as BrowserUtilities from "./BrowserUtilities";
 import * as HTMLUtilities from "./HTMLUtilities";
 import * as IconLib from "./IconLib";
+import { R2NavigatorView } from "./R2NavigatorView";
 
 // const epubReadingSystemObject: EpubReadingSystemObject = {
 //     name: "Webpub viewer",
@@ -229,32 +224,9 @@ export default class IFrameNavigator implements Navigator {
         await navigator.start(config.element, config.manifestUrl);
 
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
-        const publication: Publication = await Publication.fromURL(config.manifestUrl.href);
-        const loader = new IFrameLoader(publication.getBaseURI());
-        loader.setReadiumCssBasePath('/readerJBKS/readium-css');
-        const cvf = new R2ContentViewFactory(loader);
-        const rendition = new Rendition(publication, navigator.iframeRoot, cvf);
-        rendition.setViewAsVertical(false);
-        navigator.renditionContext = new R2RenditionContext(rendition, loader);
-
-        // Get available width
-        const availableWidth = navigator.getAvailableWidth();
-
-        // Get height for the iframes
-        const availableHeight = navigator.getAvailableHeight();
-
-        rendition.viewport.setViewportSize(availableWidth, availableHeight);
-        rendition.viewport.setPrefetchSize(Math.ceil(availableWidth * 0.1));
-        rendition.setPageLayout({
-            spreadMode: 3,
-            pageWidth: 0,
-            pageHeight: 0,
-        });
-        await rendition.render();
-        rendition.viewport.enableScroll(false);
-        await rendition.viewport.renderAtOffset(0);
-        await navigator.handleIFrameLoad();
-
+        const r2NavView = new R2NavigatorView();
+        navigator.renditionContext = await r2NavView.loadPublication(config.manifestUrl.href, navigator.iframeRoot);
+        navigator.handleIFrameLoad();
         // @ts-ignore
         window.context = navigator.renditionContext;
         // @ts-ignore
@@ -262,43 +234,6 @@ export default class IFrameNavigator implements Navigator {
 
         // await navigator.start(config.element, config.manifestUrl);
         return navigator;
-    }
-
-    // Get available height for iframe container to sit within
-    private getAvailableHeight(): number {
-        const topBar = document.getElementById('top-control-bar');
-        let topHeight = 0;
-        if (topBar) {
-            const topRect = topBar.getBoundingClientRect();
-            topHeight = topRect.height;
-        }
-        const bottomBar = document.getElementById('bottom-control-bar');
-        let bottomHeight = 0;
-        if (bottomBar) {
-            const bottomRect = bottomBar.getBoundingClientRect();
-            bottomHeight = bottomRect.height;
-        }
-
-        return window.innerHeight - topHeight - bottomHeight;
-    }
-
-    // Get available width for iframe container to sit within
-    // @ts-ignore
-    private getAvailableWidth(): number {
-        const prevBtn = document.getElementById('prev-page-btn');
-        let prevBtnWidth = 0;
-        if (prevBtn) {
-            const rect = prevBtn.getBoundingClientRect();
-            prevBtnWidth = rect.width;
-        }
-        const nextBtn = document.getElementById('next-page-btn');
-        let nextBtnWidth = 0;
-        if (nextBtn) {
-            const rect = nextBtn.getBoundingClientRect();
-            nextBtnWidth = rect.width;
-        }
-
-        return window.innerWidth - prevBtnWidth - nextBtnWidth;
     }
 
     protected constructor(
