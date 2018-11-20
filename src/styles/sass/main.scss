@@ -621,6 +621,10 @@ iframe {
       background: linear-gradient(to left, lighten($ui-black, 10%), lighten($ui-black, 10%) 28%, $ui-black 30%, $ui-black);
     }
   }
+
+  .flip-page-btn {
+    background: rgba(245, 245, 245, 0.1);
+  }
 }
 
 @import "toc";

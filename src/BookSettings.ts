@@ -62,7 +62,7 @@ export default class BookSettings {
 
     private fontChangeCallback: () => void = () => {};
     private fontSizeChangeCallback: (newFontSize: number) => void = () => {};
-    private themeChangeCallback: () => void = () => {};
+    private themeChangeCallback: (theme: string) => void = () => {};
     private viewChangeCallback: () => void = () => {};
 
     private selectedFont: BookFont;
@@ -229,7 +229,7 @@ export default class BookSettings {
         this.fontSizeChangeCallback = callback;
     }
 
-    public onThemeChange(callback: () => void) {
+    public onThemeChange(callback: (theme: string) => void) {
         this.themeChangeCallback = callback;
     }
 
@@ -288,7 +288,7 @@ export default class BookSettings {
                     this.selectedTheme = theme;
                     this.updateThemeButtons();
                     this.storeSelectedTheme(theme);
-                    this.themeChangeCallback();
+                    this.themeChangeCallback(theme.name);
                     event.preventDefault();
                 });
             }

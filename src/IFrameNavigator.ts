@@ -201,13 +201,10 @@ export default class IFrameNavigator implements Navigator {
     private chapterTitle: HTMLSpanElement;
     private chapterPosition: HTMLSpanElement;
     // private newPosition: ReadingPosition | null;
-    // @ts-ignore
-    private newElementId: string | null;
-    // @ts-ignore
-    private isBeingStyled: boolean;
+    // private newElementId: string | null;
+    // private isBeingStyled: boolean;
     private isLoading: boolean;
     private canFullscreen: boolean = (document as any).fullscreenEnabled || (document as any).webkitFullscreenEnabled || (document as any).mozFullScreenEnabled || (document as any).msFullscreenEnabled;
-    // @ts-ignore
     private renditionContext: R2RenditionContext;
     private iframeRoot: HTMLElement;
 
@@ -227,14 +224,21 @@ export default class IFrameNavigator implements Navigator {
         const r2NavView = new R2NavigatorView();
         navigator.renditionContext = await r2NavView.loadPublication(config.manifestUrl.href, navigator.iframeRoot);
         navigator.handleIFrameLoad();
+
+        navigator.setInitialViewSettings.bind(navigator)(config.settings);
+
         // @ts-ignore
         window.context = navigator.renditionContext;
-        // @ts-ignore
-        // window.eventHandling = EventHandling;
 
         // await navigator.start(config.element, config.manifestUrl);
         return navigator;
     }
+
+    private setInitialViewSettings(settings: BookSettings): void {
+        this.updateTheme(settings.getSelectedTheme().name);
+        this.updateFontSize(settings.getSelectedFontSize());
+    }
+
 
     protected constructor(
         store: Store,
@@ -296,8 +300,8 @@ export default class IFrameNavigator implements Navigator {
             this.chapterPosition = HTMLUtilities.findRequiredElement(this.infoBottom, "span[class=chapter-position]") as HTMLSpanElement;
             this.menuControl = HTMLUtilities.findRequiredElement(element, "button.trigger") as HTMLButtonElement;
             // this.newPosition = null;
-            this.newElementId = null;
-            this.isBeingStyled = true;
+            // this.newElementId = null;
+            // this.isBeingStyled = true;
             this.isLoading = true;
             this.setupEvents();
 
@@ -329,6 +333,7 @@ export default class IFrameNavigator implements Navigator {
             this.settings.onFontChange(this.updateFont.bind(this));
             this.settings.onFontSizeChange(this.updateFontSize.bind(this));
             this.settings.onViewChange(this.updateBookView.bind(this));
+            this.settings.onThemeChange(this.updateTheme.bind(this));
 
             // Trap keyboard focus inside the settings view when it's displayed.
             const settingsButtons = this.settingsView.querySelectorAll("button");
@@ -530,6 +535,22 @@ export default class IFrameNavigator implements Navigator {
         this.updatePositionInfo();
     }
 
+    private updateTheme(theme: string) {
+        let themeSettings = {
+            name: SettingName.ReadingMode,
+            value: '',
+        }
+
+        if (theme === 'night-theme') {
+            themeSettings.value = 'readium-night-on';
+        }
+        else if (theme === 'sepia-theme') {
+            themeSettings.value = 'readium-sepia-on';
+        }
+
+        this.renditionContext.rendition.updateViewSettings([themeSettings]);
+    }
+
     private enableOffline(): void {
         if (this.cacher && this.cacher.getStatus() !== CacheStatus.Downloaded) {
             this.cacher.enable();
@@ -691,7 +712,7 @@ export default class IFrameNavigator implements Navigator {
             // this.updateFontSize();
             this.updateBookView();
             // this.settings.getSelectedFont().start();
-            // this.settings.getSelectedTheme().start();
+            this.settings.getSelectedTheme().start();
             // this.settings.getSelectedView().start(bookViewPosition);
 
             // if (this.newElementId) {
@@ -1233,7 +1254,7 @@ export default class IFrameNavigator implements Navigator {
             // We're navigating to an anchor within the resource,
             // rather than the resource itself. Go to the resource
             // first, then go to the anchor.
-            this.newElementId = readingPosition.resource.slice(readingPosition.resource.indexOf("#") + 1)
+            // this.newElementId = readingPosition.resource.slice(readingPosition.resource.indexOf("#") + 1)
 
             const newResource = readingPosition.resource.slice(0, readingPosition.resource.indexOf("#"))
             if (newResource === this.iframe.src) {
@@ -1268,7 +1289,7 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private hideIframeContents() {
-        this.isBeingStyled = true;
+        // this.isBeingStyled = true;
         this.iframe.style.opacity = "0";
     }
 
