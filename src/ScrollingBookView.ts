@@ -10,6 +10,7 @@ export default class ScrollingBookView implements BookView {
     public sideMargin: number = 0;
     public height: number = 0;
 
+    // @ts-ignore
     private setIFrameSize(): void {
         // Remove previous iframe height so body scroll height will be accurate.
         this.bookElement.style.height = "";
@@ -40,15 +41,15 @@ export default class ScrollingBookView implements BookView {
         this.bookElement.style.height = "";
         this.bookElement.style.width = "";
 
-        const body = HTMLUtilities.findRequiredIframeElement(this.bookElement.contentDocument, "body") as HTMLBodyElement;
-        body.style.width = "";
-        body.style.marginLeft = "";
-        body.style.marginRight = "";
+        // const body = HTMLUtilities.findRequiredIframeElement(this.bookElement.contentDocument, "body") as HTMLBodyElement;
+        // body.style.width = "";
+        // body.style.marginLeft = "";
+        // body.style.marginRight = "";
 
-        const images = Array.prototype.slice.call(body.querySelectorAll("img"));
-        for (const image of images) {
-            image.style.maxWidth = "";
-        }
+        // const images = Array.prototype.slice.call(body.querySelectorAll("img"));
+        // for (const image of images) {
+        //     image.style.maxWidth = "";
+        // }
     }
 
     public getCurrentPosition(): number {
@@ -60,7 +61,7 @@ export default class ScrollingBookView implements BookView {
     }
 
     public goToPosition(position: number) {
-        this.setIFrameSize();
+        // this.setIFrameSize();
         document.body.scrollTop = document.body.scrollHeight * position;
     }
 

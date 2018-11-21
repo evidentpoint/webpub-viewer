@@ -6,17 +6,26 @@ import {
   Rendition,
   SpreadMode,
   ViewportResizer
+  // @ts-ignore
 } from '@evidentpoint/r2-navigator-web';
+
+type settingsProps = {
+  viewAsVertical: boolean,
+  enableScroll: boolean,
+};
 
 export class R2NavigatorView {
   private rendCtx: R2RenditionContext;
+  private viewportRoot: HTMLElement;
   private resizer?: ViewportResizer;
 
   private viewAsVertical: boolean = false;
   private enableScroll: boolean = false;
 
-  public constructor() {
+  public constructor(settings?: settingsProps) {
     this.updateSize = this.updateSize.bind(this);
+    this.viewAsVertical = settings != undefined ? settings.viewAsVertical : this.viewAsVertical;
+    this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
   }
 
   public destroy(): void {
@@ -32,6 +41,7 @@ export class R2NavigatorView {
     const cvf = new R2ContentViewFactory(loader);
     const rendition = new Rendition(publication, root, cvf);
     rendition.setViewAsVertical(this.viewAsVertical);
+    this.viewportRoot = root;
 
     this.rendCtx = new R2RenditionContext(rendition, loader);
 
@@ -56,8 +66,8 @@ export class R2NavigatorView {
     const availableWidth = this.getAvailableWidth();
     const availableHeight = this.getAvailableHeight();
 
-    // this.viewportRoot.style.width = `${this.root.clientWidth}px`;
-    // this.viewportRoot.style.height = `${this.root.clientHeight}px`;
+    this.viewportRoot.style.width = `${availableWidth}px`;
+    this.viewportRoot.style.height = `${availableHeight}px`;
 
     const scrollerWidthAdj = this.enableScroll ? 15 : 0;
     const viewportWidth = availableWidth - scrollerWidthAdj;
@@ -81,10 +91,16 @@ export class R2NavigatorView {
         topHeight = topRect.height;
     }
     const bottomBar = document.getElementById('bottom-control-bar');
+    const bottomBar2 = document.getElementById('bottom-info-bar');
     let bottomHeight = 0;
     if (bottomBar) {
         const bottomRect = bottomBar.getBoundingClientRect();
         bottomHeight = bottomRect.height;
+
+        if (bottomHeight <= 5 && bottomBar2) {
+          const bottomRect2 = bottomBar2.getBoundingClientRect();
+          bottomHeight = bottomRect2.height;
+        }
     }
 
     return window.innerHeight - topHeight - bottomHeight;

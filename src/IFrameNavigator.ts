@@ -68,7 +68,7 @@ const template = `
             <div id="iframe-container"></div>
             <button id="next-page-btn" class="flip-page-btn next">\></button>
         </div>
-        <div class="info bottom">
+        <div id="bottom-info-bar" class="info bottom">
             <span class="chapter-position"></span>
             <span class="chapter-title"></span>
         </div>
@@ -207,6 +207,7 @@ export default class IFrameNavigator implements Navigator {
     private canFullscreen: boolean = (document as any).fullscreenEnabled || (document as any).webkitFullscreenEnabled || (document as any).mozFullScreenEnabled || (document as any).msFullscreenEnabled;
     private renditionContext: R2RenditionContext;
     private iframeRoot: HTMLElement;
+    private r2NavView: R2NavigatorView;
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -219,11 +220,16 @@ export default class IFrameNavigator implements Navigator {
             config.allowFullscreen || null
         );
         await navigator.start(config.element, config.manifestUrl);
+        navigator.handleIFrameLoad();
+
+        const shouldScroll = config.settings.getSelectedView() === config.scroller;
 
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
-        const r2NavView = new R2NavigatorView();
-        navigator.renditionContext = await r2NavView.loadPublication(config.manifestUrl.href, navigator.iframeRoot);
-        navigator.handleIFrameLoad();
+        navigator.r2NavView = new R2NavigatorView({
+            viewAsVertical: shouldScroll,
+            enableScroll: shouldScroll,
+        });
+        navigator.renditionContext = await navigator.r2NavView.loadPublication(config.manifestUrl.href, navigator.iframeRoot);
 
         navigator.setInitialViewSettings.bind(navigator)(config.settings);
 
@@ -239,6 +245,15 @@ export default class IFrameNavigator implements Navigator {
         this.updateFontSize(settings.getSelectedFontSize());
     }
 
+    private async reloadR2Navigator(): Promise<void> {
+        this.r2NavView.destroy();
+        const shouldScroll = this.settings.getSelectedView() === this.scroller;
+        this.r2NavView = new R2NavigatorView({
+            viewAsVertical: shouldScroll,
+            enableScroll: shouldScroll,
+        });
+        this.renditionContext = await this.r2NavView.loadPublication(this.manifestUrl.href, this.iframeRoot)
+    }
 
     protected constructor(
         store: Store,
@@ -473,6 +488,7 @@ export default class IFrameNavigator implements Navigator {
 
     private updateBookView(): void {
         const doNothing = () => {};
+        let displayState = 'block';
         if (this.settings.getSelectedView() === this.paginator) {
             this.scrollingSuggestion.style.display = "block";
             document.body.onscroll = () => {};
@@ -491,27 +507,28 @@ export default class IFrameNavigator implements Navigator {
                 this.eventHandler.onLeftArrow = this.handleKeyboardNavigation.bind(this);
                 this.eventHandler.onRightArrow = this.handleKeyboardNavigation.bind(this);
             }
-            if (this.isDisplayed(this.linksBottom)) {
-                this.toggleDisplay(this.linksBottom);
-            }
+            // if (this.isDisplayed(this.linksBottom)) {
+            //     this.toggleDisplay(this.linksBottom);
+            // }
         } else if (this.settings.getSelectedView() === this.scroller) {
             this.scrollingSuggestion.style.display = "none";
-            document.body.onscroll = () => {
-                this.saveCurrentReadingPosition();
-                if (this.scroller && this.scroller.atBottom()) {
-                    // Bring up the bottom nav when you get to the bottom,
-                    // if it wasn't already displayed.
-                    if (!this.isDisplayed(this.linksBottom)) {
-                        this.toggleDisplay(this.linksBottom);
-                    }
-                } else {
-                    // Remove the bottom nav when you scroll back up,
-                    // if it was displayed because you were at the bottom.
-                    if (this.isDisplayed(this.linksBottom) && !this.isDisplayed(this.links)) {
-                        this.toggleDisplay(this.linksBottom);
-                    }
-                }
-            }
+            
+            // document.body.onscroll = () => {
+            //     this.saveCurrentReadingPosition();
+            //     if (this.scroller && this.scroller.atBottom()) {
+            //         // Bring up the bottom nav when you get to the bottom,
+            //         // if it wasn't already displayed.
+            //         if (!this.isDisplayed(this.linksBottom)) {
+            //             this.toggleDisplay(this.linksBottom);
+            //         }
+            //     } else {
+            //         // Remove the bottom nav when you scroll back up,
+            //         // if it was displayed because you were at the bottom.
+            //         if (this.isDisplayed(this.linksBottom) && !this.isDisplayed(this.links)) {
+            //             this.toggleDisplay(this.linksBottom);
+            //         }
+            //     }
+            // }
             this.chapterTitle.style.display = "none";
             this.chapterPosition.style.display = "none";
             if (this.eventHandler) {
@@ -528,11 +545,24 @@ export default class IFrameNavigator implements Navigator {
                 this.eventHandler.onRightArrow = doNothing;
                 this.handleRemoveHover();
             }
-            if (this.isDisplayed(this.links) && !this.isDisplayed(this.linksBottom)) {
-                this.toggleDisplay(this.linksBottom);
-            }
+            // if (this.isDisplayed(this.links) && !this.isDisplayed(this.linksBottom)) {
+            //     this.toggleDisplay(this.linksBottom);
+            // }
+            displayState = 'none';
+        }
+        if (this.isDisplayed(this.linksBottom)) {
+            this.toggleDisplay(this.linksBottom);
+        }
+        const prevPageBtn = document.getElementById('prev-page-btn');
+        const nextPageBtn = document.getElementById('next-page-btn');
+        if (prevPageBtn) {
+            prevPageBtn.style.setProperty('display', displayState);
+        }
+        if (nextPageBtn) {
+            nextPageBtn.style.setProperty('display', displayState);
         }
         this.updatePositionInfo();
+        this.reloadR2Navigator();
     }
 
     private updateTheme(theme: string) {
@@ -988,9 +1018,9 @@ export default class IFrameNavigator implements Navigator {
         this.hideSettings();
         this.toggleDisplay(this.links, this.menuControl);
         if (this.settings.getSelectedView() === this.scroller) {
-            if (!this.scroller.atBottom()) {
-                this.toggleDisplay(this.linksBottom);
-            }
+            // if (!this.scroller.atBottom()) {
+            //     this.toggleDisplay(this.linksBottom);
+            // }
         }
         event.preventDefault();
         event.stopPropagation();
@@ -1085,15 +1115,15 @@ export default class IFrameNavigator implements Navigator {
         const oldPosition = selectedView.getCurrentPosition();
 
         // const fontSize = this.settings.getSelectedFontSize();
-        const body = HTMLUtilities.findRequiredIframeElement(this.iframe.contentDocument, "body") as HTMLBodyElement;
+        // const body = HTMLUtilities.findRequiredIframeElement(this.iframe.contentDocument, "body") as HTMLBodyElement;
         // body.style.fontSize = fontSize;
-        body.style.lineHeight = "1.5";
+        // body.style.lineHeight = "1.5";
 
         // Disable text selection as we can’t handle this correctly anyway
-        body.style.webkitUserSelect = "none";
-        (body as any).style.MozUserSelect = "none";
-        body.style.msUserSelect = "none";
-        body.style.userSelect = "none";
+        // body.style.webkitUserSelect = "none";
+        // (body as any).style.MozUserSelect = "none";
+        // body.style.msUserSelect = "none";
+        // body.style.userSelect = "none";
 
         // const fontSizeNumber = parseInt(fontSize.slice(0, -2));
         // let sideMargin = fontSizeNumber * 2;
@@ -1127,14 +1157,14 @@ export default class IFrameNavigator implements Navigator {
 
         const linksBottomHidden = !this.isDisplayed(this.linksBottom);
         if (linksBottomHidden) {
-            this.toggleDisplay(this.linksBottom);
+            // this.toggleDisplay(this.linksBottom);
         }
 
         const bottomHeight = this.linksBottom.clientHeight;
         this.infoBottom.style.height = bottomHeight + "px";
 
         if (linksBottomHidden) {
-            this.toggleDisplay(this.linksBottom);
+            // this.toggleDisplay(this.linksBottom);
         }
 
         if (this.paginator) {

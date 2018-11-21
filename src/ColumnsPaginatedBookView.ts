@@ -12,43 +12,44 @@ export default class ColumnsPaginatedBookView implements PaginatedBookView {
 
     protected hasFixedScrollWidth: boolean = false;
 
+    // @ts-ignore
     public start(position: number): void {
         // any is necessary because CSSStyleDeclaration type does not include
         // all the vendor-prefixed attributes.
-        const body = HTMLUtilities.findRequiredIframeElement(this.bookElement.contentDocument, "body") as any;
-        body.style.webkitColumnCount = "1";
-        body.style.MozColumnCount = "1";
-        body.style.columnCount = "1";
-        body.style.webkitColumnFill = "auto";
-        body.style.MozColumnFill = "auto";
-        body.style.columnFill = "auto";
-        body.style.overflow = "hidden";
-        body.style.position = "relative";
-        body.style.webkitFontSmoothing = "subpixel-antialiased";
-        this.setSize();
-        const viewportElement = document.createElement("meta");
-        viewportElement.name = "viewport";
-        viewportElement.content = "width=device-width, initial-scale=1, maximum-scale=1";
-        const head = HTMLUtilities.findIframeElement(this.bookElement.contentDocument, "head");
-        if (head) {
-            head.appendChild(viewportElement);
-        }
+        // const body = HTMLUtilities.findRequiredIframeElement(this.bookElement.contentDocument, "body") as any;
+        // body.style.webkitColumnCount = "1";
+        // body.style.MozColumnCount = "1";
+        // body.style.columnCount = "1";
+        // body.style.webkitColumnFill = "auto";
+        // body.style.MozColumnFill = "auto";
+        // body.style.columnFill = "auto";
+        // body.style.overflow = "hidden";
+        // body.style.position = "relative";
+        // body.style.webkitFontSmoothing = "subpixel-antialiased";
+        // this.setSize();
+        // const viewportElement = document.createElement("meta");
+        // viewportElement.name = "viewport";
+        // viewportElement.content = "width=device-width, initial-scale=1, maximum-scale=1";
+        // const head = HTMLUtilities.findIframeElement(this.bookElement.contentDocument, "head");
+        // if (head) {
+        //     head.appendChild(viewportElement);
+        // }
 
-        this.checkForFixedScrollWidth();
+        // this.checkForFixedScrollWidth();
 
-        this.goToPosition(position);
+        // this.goToPosition(position);
 
         // This is delayed to prevent a bug in iOS 10.3 that causes
         // the top links to be displayed in the middle of the page.
-        setTimeout(() => {
-            document.body.style.overflow = "hidden";
-            // This prevents overscroll/bouncing on iOS.
-            document.body.style.position = "fixed";
-            document.body.style.left = "0";
-            document.body.style.right = "0";
-            document.body.style.top = "0";
-            document.body.style.bottom = "0";
-        }, 0);
+        // setTimeout(() => {
+        //     document.body.style.overflow = "hidden";
+        //     // This prevents overscroll/bouncing on iOS.
+        //     document.body.style.position = "fixed";
+        //     document.body.style.left = "0";
+        //     document.body.style.right = "0";
+        //     document.body.style.top = "0";
+        //     document.body.style.bottom = "0";
+        // }, 0);
     }
 
     protected checkForFixedScrollWidth(): void {
@@ -63,6 +64,7 @@ export default class ColumnsPaginatedBookView implements PaginatedBookView {
         body.style.left = originalLeft + "px";
     }
 
+    // @ts-ignore
     private setSize(): void {
         // any is necessary because CSSStyleDeclaration type does not include
         // all the vendor-prefixed attributes.
@@ -118,40 +120,40 @@ export default class ColumnsPaginatedBookView implements PaginatedBookView {
         document.body.style.top = "";
         document.body.style.bottom = "";
 
-        const body = HTMLUtilities.findRequiredIframeElement(this.bookElement.contentDocument, "body") as any;
-        body.style.columnCount = "";
-        body.style.webkitColumnCount = "";
-        body.style.MozColumnCount = "";
-        body.style.columnGap = "";
-        body.style.webkitColumnGap = "";
-        body.style.MozColumnGap = "";
-        body.style.columnFill = "";
-        body.style.webkitColumnFill = "";
-        body.style.MozColumnFill = "";
-        body.style.overflow = "";
-        body.style.position = "";
-        body.style.webkitFontSmoothing = "";
-        body.style.columnWidth = "";
-        body.style.webkitColumnWidth = "";
-        body.style.MozColumnWidth = "";
-        body.style.height = "";
-        body.style.width = "";
-        body.style.marginLeft = "";
-        body.style.marginRight = "";
-        body.style.marginTop = "";
-        body.style.marginBottom = "";
-        (this.bookElement.contentDocument as any).documentElement.style.height = "";
-        this.bookElement.style.height = "";
-        this.bookElement.style.width = "";
+        // const body = HTMLUtilities.findRequiredIframeElement(this.bookElement.contentDocument, "body") as any;
+        // body.style.columnCount = "";
+        // body.style.webkitColumnCount = "";
+        // body.style.MozColumnCount = "";
+        // body.style.columnGap = "";
+        // body.style.webkitColumnGap = "";
+        // body.style.MozColumnGap = "";
+        // body.style.columnFill = "";
+        // body.style.webkitColumnFill = "";
+        // body.style.MozColumnFill = "";
+        // body.style.overflow = "";
+        // body.style.position = "";
+        // body.style.webkitFontSmoothing = "";
+        // body.style.columnWidth = "";
+        // body.style.webkitColumnWidth = "";
+        // body.style.MozColumnWidth = "";
+        // body.style.height = "";
+        // body.style.width = "";
+        // body.style.marginLeft = "";
+        // body.style.marginRight = "";
+        // body.style.marginTop = "";
+        // body.style.marginBottom = "";
+        // (this.bookElement.contentDocument as any).documentElement.style.height = "";
+        // this.bookElement.style.height = "";
+        // this.bookElement.style.width = "";
 
-        const images = body.querySelectorAll("img");
-        for (const image of images) {
-            image.style.maxWidth = "";
-            image.style.maxHeight = "";
-            image.style.display = "";
-            image.style.marginLeft = "";
-            image.style.marginRight = "";
-        }
+        // const images = body.querySelectorAll("img");
+        // for (const image of images) {
+        //     image.style.maxWidth = "";
+        //     image.style.maxHeight = "";
+        //     image.style.display = "";
+        //     image.style.marginLeft = "";
+        //     image.style.marginRight = "";
+        // }
     }
 
     /** Returns the total width of the columns that are currently
@@ -222,12 +224,12 @@ export default class ColumnsPaginatedBookView implements PaginatedBookView {
         proportion of columns that are currently positioned
         to the left of the iframe viewport. */
     public getCurrentPosition(): number {
-        const width = this.getColumnWidth();
-        const leftWidth = this.getLeftColumnsWidth();
-        const rightWidth = this.getRightColumnsWidth();
-        const totalWidth = leftWidth + width + rightWidth;
+        // const width = this.getColumnWidth();
+        // const leftWidth = this.getLeftColumnsWidth();
+        // const rightWidth = this.getRightColumnsWidth();
+        // const totalWidth = leftWidth + width + rightWidth;
 
-        return leftWidth / totalWidth;
+        return 0;//leftWidth / totalWidth;
     }
 
     /** Returns the current 1-indexed page number. */
@@ -275,27 +277,28 @@ export default class ColumnsPaginatedBookView implements PaginatedBookView {
         or 1 to go to the last page. The position will be rounded down so
         it matches the position of one of the columns. */
     /** @param position Number in range [0..1] */
+    // @ts-ignore
     public goToPosition(position: number) {
-        this.setSize();
+        // this.setSize();
         // If the window has changed size since the columns were set up,
         // we need to reset position so we can determine the new total width.
-        this.setLeftColumnsWidth(0);
+        // this.setLeftColumnsWidth(0);
 
-        const width = this.getColumnWidth();
-        const rightWidth = this.getRightColumnsWidth();
-        const totalWidth = width + rightWidth;
+        // const width = this.getColumnWidth();
+        // const rightWidth = this.getRightColumnsWidth();
+        // const totalWidth = width + rightWidth;
 
-        const newLeftWidth = position * totalWidth;
+        // const newLeftWidth = position * totalWidth;
 
         // Round the new left width so it's a multiple of the column width.
 
-        let roundedLeftWidth = Math.round(newLeftWidth / width) * width;
-        if (roundedLeftWidth >= totalWidth) {
+        // let roundedLeftWidth = Math.round(newLeftWidth / width) * width;
+        // if (roundedLeftWidth >= totalWidth) {
             // We've gone too far and all the columns are off to the left.
             // Move one column back into the viewport.
-            roundedLeftWidth = roundedLeftWidth - width;
-        }
-        this.setLeftColumnsWidth(roundedLeftWidth);
+            // roundedLeftWidth = roundedLeftWidth - width;
+        // }
+        // this.setLeftColumnsWidth(roundedLeftWidth);
     }
 
     public goToElement(elementId: string, relative?: boolean) {
