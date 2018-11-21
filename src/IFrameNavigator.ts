@@ -3,6 +3,7 @@ import Navigator from "./Navigator";
 import {
     RenditionContext as R2RenditionContext,
     SettingName,
+    Location,
   } from '@evidentpoint/r2-navigator-web';
 
 // import {
@@ -652,7 +653,7 @@ export default class IFrameNavigator implements Navigator {
             this.setupModalFocusTrap(this.tocView, this.contentsControl, lastLink);
         }
 
-        listElement.addEventListener("click", (event:Event) => {
+        listElement.addEventListener("click", async (event:Event) => {
             event.preventDefault();
             event.stopPropagation();
             if(event.target && (event.target as HTMLElement).tagName.toLowerCase() === "a") {
@@ -666,10 +667,15 @@ export default class IFrameNavigator implements Navigator {
                     // Set focus back to the contents toggle button so screen readers
                     // don't get stuck on a hidden link.
                     this.contentsControl.focus();
-                    this.navigate({
-                        resource: linkElement.href,
-                        position: 0
-                    });
+                    // this.navigate({
+                    //     resource: linkElement.href,
+                    //     position: 0
+                    // });
+                    const pub = this.renditionContext.rendition.getPublication();
+                    const href = pub.getHrefRelativeToManifest(linkElement.href);
+                    const loc = new Location('', href, true);
+                    this.renditionContext.navigator.gotoLocation(loc);
+                    this.hideTOC();
                 }
             }
         });
