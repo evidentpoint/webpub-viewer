@@ -243,9 +243,14 @@ export default class IFrameNavigator implements Navigator {
     private setInitialViewSettings(settings: BookSettings): void {
         this.updateTheme(settings.getSelectedTheme().name);
         this.updateFontSize(settings.getSelectedFontSize());
+
+        this.updateChapter();
     }
 
     private async reloadR2Navigator(): Promise<void> {
+        if (!this.r2NavView) {
+            return;
+        }
         this.r2NavView.destroy();
         const shouldScroll = this.settings.getSelectedView() === this.scroller;
         this.r2NavView = new R2NavigatorView({
@@ -415,12 +420,18 @@ export default class IFrameNavigator implements Navigator {
 
         const nextPageBtn = document.getElementById('next-page-btn');
         if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', () => {this.renditionContext.navigator.nextScreen()});
+            nextPageBtn.addEventListener('click', async () => {
+                await this.renditionContext.navigator.nextScreen()
+                this.updateChapter();
+            });
         }
 
         const prevPageBtn = document.getElementById('prev-page-btn');
         if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', () => {this.renditionContext.navigator.previousScreen()});
+            prevPageBtn.addEventListener('click', async () => {
+                await this.renditionContext.navigator.previousScreen()
+                this.updateChapter();
+            });
         }
 
         if (this.allowFullscreen && this.canFullscreen) {
@@ -801,7 +812,6 @@ export default class IFrameNavigator implements Navigator {
                 this.bookTitle.innerHTML = manifest.metadata.title;
             }
 
-            let chapterTitle;
             // const spineItem = manifest.getSpineItem(currentLocation);
             // if (spineItem !== null) {
             //     chapterTitle = spineItem.title;
@@ -813,11 +823,7 @@ export default class IFrameNavigator implements Navigator {
             //     }
             // }
 
-            if (chapterTitle) {
-                this.chapterTitle.innerHTML = "(" + chapterTitle + ")";
-            } else {
-                this.chapterTitle.innerHTML = "(Current Chapter)";
-            }
+            this.updateChapter();
 
             // if (this.eventHandler) {
                 // this.eventHandler.setupEvents(this.iframe.contentDocument);
@@ -836,6 +842,31 @@ export default class IFrameNavigator implements Navigator {
             this.abortOnError();
             return new Promise<void>((_, reject) => reject(err)).catch(() => {});
         }
+    }
+
+    // @ts-ignore
+    private updateChapter(title?: string): void {
+        let newTitle = 'Current Chapter';
+        if (this.renditionContext) {
+            const pub = this.renditionContext.rendition.getPublication();
+            const currentLoc = this.renditionContext.navigator.getCurrentLocation();
+            let currentChap;
+            if (currentLoc) {
+                currentChap = pub.toc.find((item: any) => {
+                    return (currentLoc.getHref() === item.href);
+                });
+    
+                if (!currentChap) {
+                    currentChap = pub.toc[0];
+                }
+                newTitle = currentChap.title;
+            }
+        }
+
+        if (title) {
+            newTitle = title;
+        }
+        this.chapterTitle.innerHTML = "(" + newTitle + ")";
     }
 
     private abortOnError() {
