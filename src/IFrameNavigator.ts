@@ -252,7 +252,8 @@ export default class IFrameNavigator implements Navigator {
             viewAsVertical: shouldScroll,
             enableScroll: shouldScroll,
         });
-        this.renditionContext = await this.r2NavView.loadPublication(this.manifestUrl.href, this.iframeRoot)
+        this.renditionContext = await this.r2NavView.loadPublication(this.manifestUrl.href, this.iframeRoot);
+        this.setInitialViewSettings(this.settings);
     }
 
     protected constructor(

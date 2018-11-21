@@ -32,6 +32,10 @@ export class R2NavigatorView {
     if (this.resizer) {
       this.resizer.stopListenResize();
     }
+    const el = document.getElementById('layout-view-root');
+    if (el) {
+      el.remove();
+    }
   }
 
   public async loadPublication(pubUrl: string, root: HTMLElement): Promise<R2RenditionContext> {
