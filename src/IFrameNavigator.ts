@@ -247,7 +247,10 @@ export default class IFrameNavigator implements Navigator {
         this.updateTheme(settings.getSelectedTheme().name);
         this.updateFontSize(settings.getSelectedFontSize());
 
-        this.updateChapter();
+        this.navigatorPositionChanged();
+        this.renditionContext.rendition.viewport.addPositionUpdatedListener(() => {
+            this.navigatorPositionChanged.bind(this)();
+        });
     }
 
     private async reloadR2Navigator(): Promise<void> {
@@ -436,10 +439,31 @@ export default class IFrameNavigator implements Navigator {
             document.addEventListener("MSFullscreenChange", this.toggleFullscreenIcon.bind(this));
         }
 
-        this.renditionContext.rendition.viewport.addPositionUpdatedListener(() => {
-            this.updateChapter.bind(this)();
-        });
         // this.renditionContext.rendition.viewport.addPositionUpdatedListener(this.updateChapter.bind(this));
+    }
+
+    private async navigatorPositionChanged(): Promise<void> {
+        let chapterTitle = '';
+        let chapterHref = '';
+        if (this.renditionContext) {
+            const pub = this.renditionContext.rendition.getPublication();
+            const currentLoc = await this.renditionContext.navigator.getCurrentLocationAsync();
+            let currentChap;
+            if (currentLoc) {
+                chapterHref = currentLoc.getHref()
+                currentChap = pub.toc.find((item: any) => {
+                    return ( chapterHref === item.href);
+                });
+    
+                if (!currentChap) {
+                    currentChap = pub.toc[0];
+                }
+                chapterTitle = currentChap.title;
+            }
+        }
+
+        this.updateChapter(chapterTitle);
+        this.setActiveTOCItem(chapterHref);
     }
 
     private setupModalFocusTrap(modal: HTMLDivElement, closeButton: HTMLButtonElement, lastFocusableElement: HTMLButtonElement | HTMLAnchorElement): void {
@@ -675,7 +699,6 @@ export default class IFrameNavigator implements Navigator {
                     const loc = new Location('', href, true);
                     this.renditionContext.navigator.gotoLocation(loc);
                     this.hideTOC();
-                    this.setActiveTOCItem(linkElement.href);
                 }
             }
         });
@@ -851,23 +874,8 @@ export default class IFrameNavigator implements Navigator {
     }
 
     // @ts-ignore
-    private updateChapter(title?: string): void {
+    private async updateChapter(title?: string): void {
         let newTitle = 'Current Chapter';
-        if (this.renditionContext) {
-            const pub = this.renditionContext.rendition.getPublication();
-            const currentLoc = this.renditionContext.navigator.getCurrentLocation();
-            let currentChap;
-            if (currentLoc) {
-                currentChap = pub.toc.find((item: any) => {
-                    return (currentLoc.getHref() === item.href);
-                });
-    
-                if (!currentChap) {
-                    currentChap = pub.toc[0];
-                }
-                newTitle = currentChap.title;
-            }
-        }
 
         if (title) {
             newTitle = title;
@@ -1286,11 +1294,8 @@ export default class IFrameNavigator implements Navigator {
     private setActiveTOCItem(resource: string): void {
         const allItems = Array.prototype.slice.call(this.tocView.querySelectorAll("li > a"));
         for (const item of allItems) {
-            item.className = "";
-        }
-        const activeItem = this.tocView.querySelector('li > a[href^="' + resource  + '"]');
-        if (activeItem) {
-            activeItem.className = "active";
+            const classVal = item.href.includes(resource) ? 'active' : '';
+            item.setAttribute('class', classVal);
         }
     }
 
