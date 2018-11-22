@@ -5,8 +5,8 @@ import {
   RenditionContext as R2RenditionContext,
   Rendition,
   SpreadMode,
+  ScrollMode,
   ViewportResizer
-  // @ts-ignore
 } from '@evidentpoint/r2-navigator-web';
 
 type settingsProps = {
@@ -57,7 +57,7 @@ export class R2NavigatorView {
         pageHeight: 0,
     });
     await rendition.render();
-    rendition.viewport.enableScroll(this.enableScroll);
+    rendition.viewport.setScrollMode(this.enableScroll ? ScrollMode.Publication : ScrollMode.None);
     
     this.resizer = new ViewportResizer(this.rendCtx, this.updateSize);
 
