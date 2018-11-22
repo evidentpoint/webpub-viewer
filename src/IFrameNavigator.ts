@@ -233,7 +233,9 @@ export default class IFrameNavigator implements Navigator {
         navigator.renditionContext = await navigator.r2NavView.loadPublication(config.manifestUrl.href, navigator.iframeRoot);
 
         navigator.setInitialViewSettings.bind(navigator)(config.settings);
+        navigator.setupEvents();
 
+        // Debug
         // @ts-ignore
         window.context = navigator.renditionContext;
 
@@ -325,7 +327,6 @@ export default class IFrameNavigator implements Navigator {
             // this.newElementId = null;
             // this.isBeingStyled = true;
             this.isLoading = true;
-            this.setupEvents();
 
             if (this.publisher) {
                 this.publisher.bookElement = this.iframe;
@@ -384,7 +385,6 @@ export default class IFrameNavigator implements Navigator {
     private setupEvents(): void {
         // this.iframe.addEventListener("load", this.handleIFrameLoad.bind(this));
 
-
         const delay: number = 200;
         let timeout: any;
 
@@ -421,18 +421,12 @@ export default class IFrameNavigator implements Navigator {
 
         const nextPageBtn = document.getElementById('next-page-btn');
         if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', async () => {
-                await this.renditionContext.navigator.nextScreen()
-                this.updateChapter();
-            });
+            nextPageBtn.addEventListener('click', async () => {await this.renditionContext.navigator.nextScreen()});
         }
 
         const prevPageBtn = document.getElementById('prev-page-btn');
         if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', async () => {
-                await this.renditionContext.navigator.previousScreen()
-                this.updateChapter();
-            });
+            prevPageBtn.addEventListener('click', async () => {await this.renditionContext.navigator.previousScreen()});
         }
 
         if (this.allowFullscreen && this.canFullscreen) {
@@ -441,6 +435,11 @@ export default class IFrameNavigator implements Navigator {
             document.addEventListener("mozfullscreenchange", this.toggleFullscreenIcon.bind(this));
             document.addEventListener("MSFullscreenChange", this.toggleFullscreenIcon.bind(this));
         }
+
+        this.renditionContext.rendition.viewport.addPositionUpdatedListener(() => {
+            this.updateChapter.bind(this)();
+        });
+        // this.renditionContext.rendition.viewport.addPositionUpdatedListener(this.updateChapter.bind(this));
     }
 
     private setupModalFocusTrap(modal: HTMLDivElement, closeButton: HTMLButtonElement, lastFocusableElement: HTMLButtonElement | HTMLAnchorElement): void {
@@ -676,6 +675,7 @@ export default class IFrameNavigator implements Navigator {
                     const loc = new Location('', href, true);
                     this.renditionContext.navigator.gotoLocation(loc);
                     this.hideTOC();
+                    this.setActiveTOCItem(linkElement.href);
                 }
             }
         });
@@ -1283,16 +1283,16 @@ export default class IFrameNavigator implements Navigator {
         }
     }
 
-    // private setActiveTOCItem(resource: string): void {
-    //     const allItems = Array.prototype.slice.call(this.tocView.querySelectorAll("li > a"));
-    //     for (const item of allItems) {
-    //         item.className = "";
-    //     }
-    //     const activeItem = this.tocView.querySelector('li > a[href^="' + resource  + '"]');
-    //     if (activeItem) {
-    //         activeItem.className = "active";
-    //     }
-    // }
+    private setActiveTOCItem(resource: string): void {
+        const allItems = Array.prototype.slice.call(this.tocView.querySelectorAll("li > a"));
+        for (const item of allItems) {
+            item.className = "";
+        }
+        const activeItem = this.tocView.querySelector('li > a[href^="' + resource  + '"]');
+        if (activeItem) {
+            activeItem.className = "active";
+        }
+    }
 
     private handleSettingsClick(event: MouseEvent): void {
         this.hideTOC();
