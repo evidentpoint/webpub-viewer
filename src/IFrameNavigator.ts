@@ -66,9 +66,21 @@ const template = `
             <span class="book-title"></span>
         </div>
         <div class="page-container">
-            <button id="prev-page-btn" class="flip-page-btn prev">\<</button>
+            <button id="prev-page-btn" class="flip-page-btn prev">
+                <svg viewBox="0 0 24 24" role="img" width="24" height="24"
+                aria-labelledby="next-page-btn-title" class="flip-page-icon prev">
+                    <title id="next-page-btn-title">Switch to next page</title>
+                    <path d="M16.59 8.59 L12 13.17 7.41 8.59 6 10 l6 6 6-6-1.41-1.41z"/>
+                </svg>
+            </button>
             <div id="iframe-container"></div>
-            <button id="next-page-btn" class="flip-page-btn next">\></button>
+            <button id="next-page-btn" class="flip-page-btn next">
+                <svg viewBox="0 0 24 24" role="img" width="24" height="24"
+                    aria-labelledby="next-page-btn-title" class="flip-page-icon next">
+                    <title id="next-page-btn-title">Switch to next page</title>
+                    <path d="M16.59 8.59 L12 13.17 7.41 8.59 6 10 l6 6 6-6-1.41-1.41z"/>
+                </svg>
+            </button>
         </div>
         <div id="bottom-info-bar" class="info bottom">
             <span class="chapter-position"></span>

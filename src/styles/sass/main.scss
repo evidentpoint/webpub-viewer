@@ -430,10 +430,21 @@ iframe {
 
 .flip-page-btn {
   display: inline-block;
-  border: 1px solid rgb(7, 7, 7);
-  background: rgba(50, 50, 50, 0.1);
-  color: rgb(7, 7, 7);
+  border: 1px solid #d5d5d5;
+  background: rgba(254, 254, 254, 1);
+  fill: #5B5852;
   width: 50px,
+}
+
+.flip-page-icon {
+
+  &.next {
+    transform: rotate(-90deg);
+  }
+
+  &.prev {
+    transform: rotate(90deg);
+  }
 }
 
 .page-container {
@@ -624,6 +635,8 @@ iframe {
 
   .flip-page-btn {
     background: rgba(245, 245, 245, 0.1);
+    border: 0;
+    fill: #DADADA;
   }
 }
 
