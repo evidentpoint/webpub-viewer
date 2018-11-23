@@ -249,8 +249,8 @@ export default class IFrameNavigator implements Navigator {
         this.updateFontSize(settings.getSelectedFontSize());
 
         this.navigatorPositionChanged();
-        this.renditionContext.rendition.viewport.addPositionUpdatedListener(() => {
-            this.navigatorPositionChanged.bind(this)();
+        this.renditionContext.rendition.viewport.addLocationChangedListener(() => {
+            this.navigatorPositionChanged();
         });
     }
 
@@ -300,7 +300,9 @@ export default class IFrameNavigator implements Navigator {
         this.scroller = scroller;
         this.eventHandler = eventHandler || new EventHandler();
         this.upLinkConfig = upLinkConfig;
-        this.allowFullscreen = allowFullscreen
+        this.allowFullscreen = allowFullscreen;
+
+        this.navigatorPositionChanged = this.navigatorPositionChanged.bind(this);
     }
 
     protected async start(element: HTMLElement, manifestUrl: URL): Promise<void> {
