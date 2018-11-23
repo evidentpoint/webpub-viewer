@@ -60,7 +60,7 @@ export default class BookSettings {
 
     private offlineStatusElement: HTMLElement;
 
-    private fontChangeCallback: () => void = () => {};
+    private fontChangeCallback: (newFont: string) => void = () => {};
     private fontSizeChangeCallback: (newFontSize: number) => void = () => {};
     private themeChangeCallback: (theme: string) => void = () => {};
     private viewChangeCallback: () => void = () => {};
@@ -221,7 +221,7 @@ export default class BookSettings {
         });
     }
 
-    public onFontChange(callback: () => void) {
+    public onFontChange(callback: (newFont: string) => void) {
         this.fontChangeCallback = callback;
     }
 
@@ -242,12 +242,12 @@ export default class BookSettings {
             const button = this.fontButtons[font.name];
             if (button) {
                 button.addEventListener("click", (event: MouseEvent) => {
-                    this.selectedFont.stop();
-                    font.start();
+                    // this.selectedFont.stop();
+                    // font.start();
                     this.selectedFont = font;
                     this.updateFontButtons();
                     this.storeSelectedFont(font);
-                    this.fontChangeCallback();
+                    this.fontChangeCallback(font.name);
                     event.preventDefault();
                 });
             }

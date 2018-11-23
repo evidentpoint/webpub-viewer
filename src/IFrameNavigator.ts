@@ -510,8 +510,31 @@ export default class IFrameNavigator implements Navigator {
         }
     };
 
-    private updateFont(): void {
-        this.handleResize();
+    private updateFont(font: string): void {
+        let fontFam = '';
+        let fontOverload = '';
+        if (font === 'publisher-font') {
+            fontOverload = 'readium-font-off';
+        }
+        else if (font === 'serif-font') {
+            fontFam = '--RS__modernTf';
+            fontOverload = 'readium-font-on';
+        }
+        else if (font === 'sans-font') {
+            fontFam = '--RS__humanistTf';
+            fontOverload = 'readium-font-on';
+        }
+
+        const settings = [{
+            name: SettingName.FontFamily,
+            value: `var(${fontFam})`
+        },
+        {
+            name: SettingName.FontOverride,
+            value: fontOverload
+        }]
+
+        this.renditionContext.rendition.updateViewSettings(settings)
     }
 
     private updateFontSize(newFontSize: number): void {
