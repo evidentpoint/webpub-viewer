@@ -4,6 +4,7 @@ import {
     RenditionContext as R2RenditionContext,
     SettingName,
     Location,
+    // @ts-ignore
   } from '@evidentpoint/r2-navigator-web';
 
 // import {
@@ -424,12 +425,12 @@ export default class IFrameNavigator implements Navigator {
 
         const nextPageBtn = document.getElementById('next-page-btn');
         if (nextPageBtn) {
-            nextPageBtn.addEventListener('click', async () => {await this.renditionContext.navigator.nextScreen()});
+            nextPageBtn.addEventListener('click', this.handleNextPageClick.bind(this));
         }
 
         const prevPageBtn = document.getElementById('prev-page-btn');
         if (prevPageBtn) {
-            prevPageBtn.addEventListener('click', async () => {await this.renditionContext.navigator.previousScreen()});
+            prevPageBtn.addEventListener('click', this.handlePreviousPageClick.bind(this));
         }
 
         if (this.allowFullscreen && this.canFullscreen) {
@@ -501,12 +502,10 @@ export default class IFrameNavigator implements Navigator {
         const LEFT_ARROW = 37;
         const RIGHT_ARROW = 39;
 
-        if (this.settings.getSelectedView() === this.paginator) {
-            if (event.keyCode === LEFT_ARROW) {
-                this.handlePreviousPageClick(event);
-            } else if (event.keyCode === RIGHT_ARROW) {
-                this.handleNextPageClick(event);
-            }
+        if (event.keyCode === LEFT_ARROW) {
+            this.handlePreviousPageClick(event);
+        } else if (event.keyCode === RIGHT_ARROW) {
+            this.handleNextPageClick(event);
         }
     };
 
@@ -1095,44 +1094,50 @@ export default class IFrameNavigator implements Navigator {
         event.stopPropagation();
     }
 
+    // @ts-ignore
     private handlePreviousPageClick(event: MouseEvent | TouchEvent | KeyboardEvent): void {
-        if (this.paginator) {
-            if (this.paginator.onFirstPage()) {
-                if (this.previousChapterLink.hasAttribute("href")) {
-                    const position = {
-                        resource: this.previousChapterLink.href,
-                        position: 1
-                    };
-                    this.navigate(position);
-                }
-            } else {
-                this.paginator.goToPreviousPage();
-                this.updatePositionInfo();
-                this.saveCurrentReadingPosition();
-            }
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        // if (this.paginator) {
+        //     if (this.paginator.onFirstPage()) {
+        //         if (this.previousChapterLink.hasAttribute("href")) {
+        //             const position = {
+        //                 resource: this.previousChapterLink.href,
+        //                 position: 1
+        //             };
+        //             this.navigate(position);
+        //         }
+        //     } else {
+        //         this.paginator.goToPreviousPage();
+        //         this.updatePositionInfo();
+        //         this.saveCurrentReadingPosition();
+        //     }
+        //     event.preventDefault();
+        //     event.stopPropagation();
+        // }
+
+        this.renditionContext.navigator.previousScreen();
     }
 
+    // @ts-ignore
     private handleNextPageClick(event: MouseEvent | TouchEvent | KeyboardEvent) {
-        if (this.paginator) {
-            if (this.paginator.onLastPage()) {
-                if (this.nextChapterLink.hasAttribute("href")) {
-                    const position = {
-                        resource: this.nextChapterLink.href,
-                        position: 0
-                    };
-                    this.navigate(position);
-                }
-            } else {
-                this.paginator.goToNextPage();
-                this.updatePositionInfo();
-                this.saveCurrentReadingPosition();
-            }
-            event.preventDefault();
-            event.stopPropagation();
-        }
+        // if (this.paginator) {
+        //     if (this.paginator.onLastPage()) {
+        //         if (this.nextChapterLink.hasAttribute("href")) {
+        //             const position = {
+        //                 resource: this.nextChapterLink.href,
+        //                 position: 0
+        //             };
+        //             this.navigate(position);
+        //         }
+        //     } else {
+        //         this.paginator.goToNextPage();
+        //         this.updatePositionInfo();
+        //         this.saveCurrentReadingPosition();
+        //     }
+        //     event.preventDefault();
+        //     event.stopPropagation();
+        // }
+
+        this.renditionContext.navigator.nextScreen();
     }
 
     private handleLeftHover(): void {
@@ -1266,7 +1271,6 @@ export default class IFrameNavigator implements Navigator {
         //     this.navigate(position);
         // }
 
-        this.renditionContext.navigator.previousScreen();
         event.preventDefault();
         event.stopPropagation();
     }
@@ -1280,7 +1284,6 @@ export default class IFrameNavigator implements Navigator {
         //     this.navigate(position);
         // }
 
-        this.renditionContext.navigator.nextScreen();
         event.preventDefault();
         event.stopPropagation();
     }
@@ -1340,29 +1343,29 @@ export default class IFrameNavigator implements Navigator {
         }
     }
 
-    private navigate(readingPosition: ReadingPosition): void {
-        this.hideIframeContents();
-        this.showLoadingMessageAfterDelay();
-        // this.newPosition = readingPosition;
-        if (readingPosition.resource.indexOf("#") === -1) {
-            this.iframe.src = readingPosition.resource;
-        } else {
-            // We're navigating to an anchor within the resource,
-            // rather than the resource itself. Go to the resource
-            // first, then go to the anchor.
-            // this.newElementId = readingPosition.resource.slice(readingPosition.resource.indexOf("#") + 1)
+    // private navigate(readingPosition: ReadingPosition): void {
+    //     this.hideIframeContents();
+    //     this.showLoadingMessageAfterDelay();
+    //     // this.newPosition = readingPosition;
+    //     if (readingPosition.resource.indexOf("#") === -1) {
+    //         this.iframe.src = readingPosition.resource;
+    //     } else {
+    //         // We're navigating to an anchor within the resource,
+    //         // rather than the resource itself. Go to the resource
+    //         // first, then go to the anchor.
+    //         // this.newElementId = readingPosition.resource.slice(readingPosition.resource.indexOf("#") + 1)
 
-            const newResource = readingPosition.resource.slice(0, readingPosition.resource.indexOf("#"))
-            if (newResource === this.iframe.src) {
-                // The resource isn't changing, but handle it like a new
-                // iframe load to hide the menus and popups and go to the 
-                // new element.
-                this.handleIFrameLoad();
-            } else {
-                this.iframe.src = newResource;
-            }
-        }
-    }
+    //         const newResource = readingPosition.resource.slice(0, readingPosition.resource.indexOf("#"))
+    //         if (newResource === this.iframe.src) {
+    //             // The resource isn't changing, but handle it like a new
+    //             // iframe load to hide the menus and popups and go to the 
+    //             // new element.
+    //             this.handleIFrameLoad();
+    //         } else {
+    //             this.iframe.src = newResource;
+    //         }
+    //     }
+    // }
 
     // private showIframeContents() {
     //     this.isBeingStyled = false;
@@ -1374,20 +1377,20 @@ export default class IFrameNavigator implements Navigator {
     //     }, 150);
     // }
 
-    private showLoadingMessageAfterDelay() {
-        this.isLoading = true;
-        setTimeout(() => {
-            if (this.isLoading) {
-                this.loadingMessage.style.display = "block";
-                this.loadingMessage.classList.add("is-loading");
-            }
-        }, 200);
-    }
+    // private showLoadingMessageAfterDelay() {
+    //     this.isLoading = true;
+    //     setTimeout(() => {
+    //         if (this.isLoading) {
+    //             this.loadingMessage.style.display = "block";
+    //             this.loadingMessage.classList.add("is-loading");
+    //         }
+    //     }, 200);
+    // }
 
-    private hideIframeContents() {
-        // this.isBeingStyled = true;
-        this.iframe.style.opacity = "0";
-    }
+    // private hideIframeContents() {
+    //     // this.isBeingStyled = true;
+    //     this.iframe.style.opacity = "0";
+    // }
 
     private hideLoadingMessage() {
         this.isLoading = false;
