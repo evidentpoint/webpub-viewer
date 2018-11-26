@@ -7,7 +7,7 @@ import {
   SpreadMode,
   ScrollMode,
   ViewportResizer
-} from '@evidentpoint/r2-navigator-web';
+} from '@readium/navigator-web';
 
 type settingsProps = {
   viewAsVertical: boolean,

@@ -24,16 +24,16 @@
     "embedded": "node \"./examples/embedded/embedded-server.js\"",
     "clean": "rimraf node_modules lib dist",
     "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'",
-    "build:examples": "npm run prepublish && npm run examples && npm run copy:all",
+    "build:streamed": "npm run prepublish && npm run copy:streamed",
     "copy:all": "npm run copy:r2-navigator && npm run copy:readium-cfi",
-    "copy:r2-navigator": "cp ./node_modules/@evidentpoint/r2-navigator-web/dist/r2-navigator-web.umd.js examples/streamed/readers/reader-JBKS/@evidentpoint/r2-navigator-web.js",
-    "copy:readium-cfi": "cp ./node_modules/readium-cfi-js/dist/readium-cfi.umd.js examples/streamed/readers/reader-JBKS/readium-cfi-js.js"
+    "copy:r2-navigator": "cp ./node_modules/@readium/navigator-web/dist/readium-navigator-web.umd.js examples/streamed/readers/reader-JBKS/@readium/navigator-web.js",
+    "copy:streamed": "cpx 'viewer/*.{html,css,js}' examples/streamed/readers/reader-JBKS"
   },
   "dependencies": {
     "promise-polyfill": "^8.0.0",
     "url-polyfill": "^1.0.13",
     "whatwg-fetch": "^2.0.4",
-    "@evidentpoint/r2-navigator-web": "^0.0.3"
+    "@readium/navigator-web": "^1.0.0-alpha.0"
   },
   "devDependencies": {
     "@types/chai": "^4.1.4",

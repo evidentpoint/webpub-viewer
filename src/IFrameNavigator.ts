@@ -4,8 +4,7 @@ import {
     RenditionContext as R2RenditionContext,
     SettingName,
     Location,
-    // @ts-ignore
-  } from '@evidentpoint/r2-navigator-web';
+  } from '@readium/navigator-web';
 
 // import {
 //     EventHandling,
