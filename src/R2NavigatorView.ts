@@ -4,10 +4,14 @@ import {
   R2ContentViewFactory,
   RenditionContext as R2RenditionContext,
   Rendition,
+  Location,
   SpreadMode,
   ScrollMode,
+  SettingName,
   ViewportResizer
 } from '@readium/navigator-web';
+
+import { ChapterInfo } from './SimpleNavigatorView';
 
 type settingsProps = {
   viewAsVertical: boolean,
@@ -26,6 +30,105 @@ export class R2NavigatorView {
     this.updateSize = this.updateSize.bind(this);
     this.viewAsVertical = settings != undefined ? settings.viewAsVertical : this.viewAsVertical;
     this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
+
+    this.bindOwnMethods();
+  }
+
+  public addLocationChangedListener(callback: Function) {
+    this.rendCtx.rendition.viewport.addLocationChangedListener(callback);
+  }
+
+  public async getChapterInfo(): Promise<ChapterInfo> {
+    let chapterInfo: ChapterInfo = {
+      title: '',
+      href: '',
+    }
+
+    if (this.rendCtx) {
+      const pub = this.rendCtx.rendition.getPublication();
+      const currentLoc = await this.rendCtx.navigator.getCurrentLocationAsync();
+      let currentChap;
+      if (currentLoc) {
+          const chapterHref = currentLoc.getHref()
+          currentChap = pub.toc.find((item: any) => {
+              return ( chapterHref === item.href);
+          });
+
+          if (!currentChap) {
+              currentChap = pub.toc[0];
+          }
+          chapterInfo.title = currentChap.title;
+          chapterInfo.href = chapterHref;
+      }
+  }
+
+    return chapterInfo;
+  }
+
+  public updateFont(font: string): void {
+    let fontFam = '';
+    let fontOverload = '';
+    if (font === 'publisher-font') {
+        fontOverload = 'readium-font-off';
+    }
+    else if (font === 'serif-font') {
+        fontFam = '--RS__modernTf';
+        fontOverload = 'readium-font-on';
+    }
+    else if (font === 'sans-font') {
+        fontFam = '--RS__humanistTf';
+        fontOverload = 'readium-font-on';
+    }
+
+    const settings = [{
+        name: SettingName.FontFamily,
+        value: `var(${fontFam})`
+    },
+    {
+        name: SettingName.FontOverride,
+        value: fontOverload
+    }];
+
+    this.rendCtx.rendition.updateViewSettings(settings);
+  }
+
+  public updateFontSize(newFontSize: number): void {
+    const fontSettings = [{
+        name: SettingName.FontSize,
+        value: newFontSize * 100,
+    }];
+    this.rendCtx.rendition.updateViewSettings(fontSettings);
+  }
+
+  public updateTheme(theme: string): void {
+      let themeSettings = {
+          name: SettingName.ReadingMode,
+          value: '',
+      }
+
+      if (theme === 'night-theme') {
+          themeSettings.value = 'readium-night-on';
+      }
+      else if (theme === 'sepia-theme') {
+          themeSettings.value = 'readium-sepia-on';
+      }
+
+      this.rendCtx.rendition.updateViewSettings([themeSettings]);
+  }
+
+  public nextScreen(): void {
+    this.rendCtx.navigator.nextScreen();
+  }
+
+  public previousScreen(): void {
+    this.rendCtx.navigator.previousScreen();
+  }
+
+  public goToHrefLocation(href: string): void {
+    const pub = this.rendCtx.rendition.getPublication();
+    const relHref = pub.getHrefRelativeToManifest(href);
+    const loc = new Location('', relHref, true);
+    this.rendCtx.navigator.gotoLocation(loc);
   }
 
   public destroy(): void {
@@ -64,6 +167,15 @@ export class R2NavigatorView {
     await this.rendCtx.navigator.gotoBegin();
 
     return this.rendCtx;
+  }
+
+  private bindOwnMethods(): void {
+    // this.addLocationChangedListener = this.addLocationChangedListener.bind(this);
+    // this.getChapterInfo = this.getChapterInfo.bind(this);
+    this.updateFont = this.updateFont.bind(this);
+    this.updateFontSize = this.updateFontSize.bind(this);
+    this.updateSize = this.updateSize.bind(this);
+    this.updateTheme = this.updateTheme.bind(this);
   }
 
   private updateSize(willRefreshLayout: boolean = true): void {

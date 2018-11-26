@@ -1,11 +1,5 @@
 import Navigator from "./Navigator";
 
-import {
-    RenditionContext as R2RenditionContext,
-    SettingName,
-    Location,
-  } from '@readium/navigator-web';
-
 // import {
 //     EventHandling,
 // } from 'r2-glue-js';
@@ -218,9 +212,8 @@ export default class IFrameNavigator implements Navigator {
     // private isBeingStyled: boolean;
     private isLoading: boolean;
     private canFullscreen: boolean = (document as any).fullscreenEnabled || (document as any).webkitFullscreenEnabled || (document as any).mozFullScreenEnabled || (document as any).msFullscreenEnabled;
-    private renditionContext: R2RenditionContext;
     private iframeRoot: HTMLElement;
-    private r2NavView: R2NavigatorView;
+    private navView: R2NavigatorView;
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -235,16 +228,8 @@ export default class IFrameNavigator implements Navigator {
         await navigator.start(config.element, config.manifestUrl);
         navigator.handleIFrameLoad();
 
-        const shouldScroll = config.settings.getSelectedView() === config.scroller;
-
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
-        navigator.r2NavView = new R2NavigatorView({
-            viewAsVertical: shouldScroll,
-            enableScroll: shouldScroll,
-        });
-        navigator.renditionContext = await navigator.r2NavView.loadPublication(config.manifestUrl.href, navigator.iframeRoot);
-
-        navigator.setInitialViewSettings.bind(navigator)(config.settings);
+        navigator.updateBookView();
         navigator.setupEvents();
 
         // Debug
@@ -256,27 +241,31 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private setInitialViewSettings(settings: BookSettings): void {
-        this.updateTheme(settings.getSelectedTheme().name);
-        this.updateFontSize(settings.getSelectedFontSize());
+        this.navView.updateTheme(settings.getSelectedTheme().name);
+        this.navView.updateFontSize(settings.getSelectedFontSize());
 
         this.navigatorPositionChanged();
-        this.renditionContext.rendition.viewport.addLocationChangedListener(() => {
+        this.navView.addLocationChangedListener(() => {
             this.navigatorPositionChanged();
         });
     }
 
-    private async reloadR2Navigator(): Promise<void> {
-        if (!this.r2NavView) {
-            return;
+    private async reloadNavigator(): Promise<void> {
+        if (this.navView) {
+            this.navView.destroy();
         }
-        this.r2NavView.destroy();
+
         const shouldScroll = this.settings.getSelectedView() === this.scroller;
-        this.r2NavView = new R2NavigatorView({
+        this.navView = new R2NavigatorView({
             viewAsVertical: shouldScroll,
             enableScroll: shouldScroll,
         });
-        this.renditionContext = await this.r2NavView.loadPublication(this.manifestUrl.href, this.iframeRoot);
+        await this.navView.loadPublication(this.manifestUrl.href, this.iframeRoot);
         this.setInitialViewSettings(this.settings);
+
+        this.settings.onFontChange(this.navView.updateFont);
+        this.settings.onFontSizeChange(this.navView.updateFontSize);
+        this.settings.onThemeChange(this.navView.updateTheme);
     }
 
     protected constructor(
@@ -370,10 +359,6 @@ export default class IFrameNavigator implements Navigator {
                 this.scroller.bookElement = this.iframe;
             }
             this.settings.renderControls(this.settingsView);
-            this.settings.onFontChange(this.updateFont.bind(this));
-            this.settings.onFontSizeChange(this.updateFontSize.bind(this));
-            this.settings.onViewChange(this.updateBookView.bind(this));
-            this.settings.onThemeChange(this.updateTheme.bind(this));
 
             // Trap keyboard focus inside the settings view when it's displayed.
             const settingsButtons = this.settingsView.querySelectorAll("button");
@@ -453,31 +438,14 @@ export default class IFrameNavigator implements Navigator {
             document.addEventListener("MSFullscreenChange", this.toggleFullscreenIcon.bind(this));
         }
 
-        // this.renditionContext.rendition.viewport.addPositionUpdatedListener(this.updateChapter.bind(this));
+        this.settings.onViewChange(this.updateBookView.bind(this));
     }
 
     private async navigatorPositionChanged(): Promise<void> {
-        let chapterTitle = '';
-        let chapterHref = '';
-        if (this.renditionContext) {
-            const pub = this.renditionContext.rendition.getPublication();
-            const currentLoc = await this.renditionContext.navigator.getCurrentLocationAsync();
-            let currentChap;
-            if (currentLoc) {
-                chapterHref = currentLoc.getHref()
-                currentChap = pub.toc.find((item: any) => {
-                    return ( chapterHref === item.href);
-                });
-    
-                if (!currentChap) {
-                    currentChap = pub.toc[0];
-                }
-                chapterTitle = currentChap.title;
-            }
-        }
+        const chapterInfo: ChapterInfo = await this.navView.getChapterInfo();
 
-        this.updateChapter(chapterTitle);
-        this.setActiveTOCItem(chapterHref);
+        this.updateChapter(chapterInfo.title);
+        this.setActiveTOCItem(chapterInfo.href);
     }
 
     private setupModalFocusTrap(modal: HTMLDivElement, closeButton: HTMLButtonElement, lastFocusableElement: HTMLButtonElement | HTMLAnchorElement): void {
@@ -521,41 +489,6 @@ export default class IFrameNavigator implements Navigator {
             this.handleNextPageClick(event);
         }
     };
-
-    private updateFont(font: string): void {
-        let fontFam = '';
-        let fontOverload = '';
-        if (font === 'publisher-font') {
-            fontOverload = 'readium-font-off';
-        }
-        else if (font === 'serif-font') {
-            fontFam = '--RS__modernTf';
-            fontOverload = 'readium-font-on';
-        }
-        else if (font === 'sans-font') {
-            fontFam = '--RS__humanistTf';
-            fontOverload = 'readium-font-on';
-        }
-
-        const settings = [{
-            name: SettingName.FontFamily,
-            value: `var(${fontFam})`
-        },
-        {
-            name: SettingName.FontOverride,
-            value: fontOverload
-        }]
-
-        this.renditionContext.rendition.updateViewSettings(settings)
-    }
-
-    private updateFontSize(newFontSize: number): void {
-        const fontSettings = [{
-            name: SettingName.FontSize,
-            value: newFontSize * 100,
-        }];
-        this.renditionContext.rendition.updateViewSettings(fontSettings);
-    }
 
     private updateBookView(): void {
         const doNothing = () => {};
@@ -633,23 +566,7 @@ export default class IFrameNavigator implements Navigator {
             nextPageBtn.style.setProperty('display', displayState);
         }
         this.updatePositionInfo();
-        this.reloadR2Navigator();
-    }
-
-    private updateTheme(theme: string) {
-        let themeSettings = {
-            name: SettingName.ReadingMode,
-            value: '',
-        }
-
-        if (theme === 'night-theme') {
-            themeSettings.value = 'readium-night-on';
-        }
-        else if (theme === 'sepia-theme') {
-            themeSettings.value = 'readium-sepia-on';
-        }
-
-        this.renditionContext.rendition.updateViewSettings([themeSettings]);
+        this.reloadNavigator();
     }
 
     private enableOffline(): void {
@@ -729,10 +646,7 @@ export default class IFrameNavigator implements Navigator {
                     //     resource: linkElement.href,
                     //     position: 0
                     // });
-                    const pub = this.renditionContext.rendition.getPublication();
-                    const href = pub.getHrefRelativeToManifest(linkElement.href);
-                    const loc = new Location('', href, true);
-                    this.renditionContext.navigator.gotoLocation(loc);
+                    this.navView.goToHrefLocation(linkElement.href);
                     this.hideTOC();
                 }
             }
@@ -816,7 +730,7 @@ export default class IFrameNavigator implements Navigator {
             // }
             // this.updateFont();
             // this.updateFontSize();
-            this.updateBookView();
+            // this.updateBookView();
             // this.settings.getSelectedFont().start();
             this.settings.getSelectedTheme().start();
             // this.settings.getSelectedView().start(bookViewPosition);
@@ -908,8 +822,7 @@ export default class IFrameNavigator implements Navigator {
         }
     }
 
-    // @ts-ignore
-    private async updateChapter(title?: string): void {
+    private async updateChapter(title?: string): Promise<void> {
         let newTitle = 'Current Chapter';
 
         if (title) {
@@ -1127,7 +1040,7 @@ export default class IFrameNavigator implements Navigator {
         //     event.stopPropagation();
         // }
 
-        this.renditionContext.navigator.previousScreen();
+        this.navView.previousScreen();
     }
 
     // @ts-ignore
@@ -1150,7 +1063,7 @@ export default class IFrameNavigator implements Navigator {
         //     event.stopPropagation();
         // }
 
-        this.renditionContext.navigator.nextScreen();
+        this.navView.nextScreen();
     }
 
     private handleLeftHover(): void {
