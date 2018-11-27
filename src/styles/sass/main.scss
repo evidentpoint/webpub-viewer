@@ -440,16 +440,8 @@ iframe {
   fill: #5B5852;
   width: 50px;
   height: 50px;
-  margin: auto;
+  margin: auto 0.5em 0 0.5em;
   border-radius: 25px;
-
-  &.next {
-    margin-right: 0.5em;
-  }
-
-  &.prev {
-    margin-left: 0.5em;
-  }
 }
 
 .flip-page-container:hover {
@@ -661,8 +653,6 @@ iframe {
   }
 
   .flip-page-btn {
-    background: rgba(245, 245, 245, 0.1);
-    border: 0;
     fill: #DADADA;
   }
 }
