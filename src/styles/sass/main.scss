@@ -431,6 +431,8 @@ iframe {
 .flip-page-container {
   height: 100px;
   margin: auto;
+  display: grid;
+  align-content: center;
 }
 
 .flip-page-btn {

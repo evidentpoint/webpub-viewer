@@ -508,7 +508,7 @@ export default class IFrameNavigator implements Navigator {
 
     private updateBookView(): void {
         const doNothing = () => {};
-        let displayState = 'block';
+        let displayState = '';
         if (this.settings.getSelectedView() === this.paginator) {
             this.scrollingSuggestion.style.display = "block";
             document.body.onscroll = () => {};
