@@ -27,7 +27,6 @@ export class R2NavigatorView {
   private enableScroll: boolean = false;
 
   public constructor(settings?: settingsProps) {
-    this.updateSize = this.updateSize.bind(this);
     this.viewAsVertical = settings != undefined ? settings.viewAsVertical : this.viewAsVertical;
     this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
 
@@ -141,7 +140,7 @@ export class R2NavigatorView {
     }
   }
 
-  public async loadPublication(pubUrl: string, root: HTMLElement): Promise<R2RenditionContext> {
+  public async loadPublication(pubUrl: string, root: HTMLElement): Promise<void> {
     const publication: Publication = await Publication.fromURL(pubUrl);
     const loader = new IFrameLoader(publication.getBaseURI());
     loader.setReadiumCssBasePath('/readerJBKS/readium-css');
@@ -165,13 +164,9 @@ export class R2NavigatorView {
     this.resizer = new ViewportResizer(this.rendCtx, this.updateSize);
 
     await this.rendCtx.navigator.gotoBegin();
-
-    return this.rendCtx;
   }
 
   private bindOwnMethods(): void {
-    // this.addLocationChangedListener = this.addLocationChangedListener.bind(this);
-    // this.getChapterInfo = this.getChapterInfo.bind(this);
     this.updateFont = this.updateFont.bind(this);
     this.updateFontSize = this.updateFontSize.bind(this);
     this.updateSize = this.updateSize.bind(this);
