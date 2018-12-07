@@ -11,12 +11,48 @@ import {
   ViewportResizer
 } from '@readium/navigator-web';
 
+import {
+  RegionHandling, Region,
+} from 'r2-glue-js';
+
 import { ChapterInfo } from './SimpleNavigatorView';
 
-type settingsProps = {
-  viewAsVertical: boolean,
-  enableScroll: boolean,
+export enum RegionScope {
+  Viewport = 'viewport',
+  Document = 'document',
+}
+
+interface settingsProps {
+  viewAsVertical: boolean;
+  enableScroll: boolean;
+  viewport?: HTMLElement;
 };
+
+interface HoverSize {
+  width: number;
+  height: number;
+}
+
+interface EventData {
+  clientX: number;
+  clientY: number;
+  screenX: number;
+  screenY: number;
+  pageX: number;
+  pageY: number;
+}
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface Rect extends Point {
+  width: number,
+  height: number,
+}
+
+type GlueHandler = RegionHandling;
 
 export class R2NavigatorView {
   private rendCtx: R2RenditionContext;
@@ -25,16 +61,52 @@ export class R2NavigatorView {
 
   private viewAsVertical: boolean = false;
   private enableScroll: boolean = false;
+  private regionHandlers: RegionHandling[] = [];
+  private glueToIframeMap: Map<GlueHandler, HTMLIFrameElement> = new Map();
 
-  public constructor(settings?: settingsProps) {
+  private customLeftHoverSize: HoverSize = {
+    width: 0,
+    height: 0,
+  };
+  private customRightHoverSize: HoverSize = {
+    width: 0,
+    height: 0,
+  };
+
+  private onHoverLeftCb: Function = () => {};
+  private onHoverRightCb: Function = () => {};
+
+  public constructor(settings: settingsProps) {
     this.viewAsVertical = settings != undefined ? settings.viewAsVertical : this.viewAsVertical;
     this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
+    if (!settings.viewport) {
+      console.log('No viewport was set in R2NavigatorView');
+      return;
+    }
 
     this.bindOwnMethods();
   }
 
   public addLocationChangedListener(callback: Function) {
     this.rendCtx.rendition.viewport.addLocationChangedListener(callback);
+  }
+
+  public addHoverLeftListener(callback: Function, settings?: any) {
+    this.onHoverLeftCb = callback;
+
+    this.customLeftHoverSize = {
+      width: settings.width,
+      height: settings.height,
+    };
+  }
+
+  public addHoverRightListener(callback: Function, settings?: any) {
+    this.onHoverRightCb = callback;
+
+    this.customRightHoverSize = {
+      width: settings.width,
+      height: settings.height,
+    };
   }
 
   public async getChapterInfo(): Promise<ChapterInfo> {
@@ -150,6 +222,9 @@ export class R2NavigatorView {
     this.viewportRoot = root;
 
     this.rendCtx = new R2RenditionContext(rendition, loader);
+    this.addLocationChangedListener(() => {
+      this.viewportContentChanged();
+    });
 
     this.updateSize(false);
 
@@ -162,8 +237,177 @@ export class R2NavigatorView {
     rendition.viewport.setScrollMode(this.enableScroll ? ScrollMode.Publication : ScrollMode.None);
     
     this.resizer = new ViewportResizer(this.rendCtx, this.updateSize);
+    loader.addIFrameLoadedListener((iframe: HTMLIFrameElement) => {
+      this.iframeLoaded(iframe);
+    });
 
     await this.rendCtx.navigator.gotoBegin();
+  }
+
+  private iframeLoaded(iframe: HTMLIFrameElement): void {
+    this.addRegionHandling(iframe);
+  }
+
+  private addGlueHandler(glue: GlueHandler, iframe: HTMLIFrameElement): GlueHandler {
+    const win = iframe.contentWindow;
+    if (!glue || !win) {
+      return glue;
+    }
+    this.regionHandlers.push(glue);
+    this.glueToIframeMap.set(glue, iframe);
+
+    // Destroy references on unload
+    win.addEventListener('unload', () => {
+      this.destroyGlueHandler(glue);
+    });
+
+    return glue;
+  }
+
+  private destroyGlueHandler(glue: GlueHandler) {
+    const index = this.regionHandlers.indexOf(glue);
+    this.regionHandlers.splice(index, 1);
+    this.glueToIframeMap.delete(glue);
+    glue.destroy();
+  }
+
+  private getLeftHoverSize(): HoverSize {
+    const viewportRect = this.viewportRoot.getBoundingClientRect();
+    return {
+      width: this.customLeftHoverSize.width || viewportRect.width / 2,
+      height: this.customLeftHoverSize.height || viewportRect.height,
+    }
+  }
+
+  private getRightHoverSize(): HoverSize {
+    const viewportRect = this.viewportRoot.getBoundingClientRect();
+    return {
+      width: this.customRightHoverSize.width || viewportRect.width / 2,
+      height: this.customRightHoverSize.height || viewportRect.height,
+    }
+  }
+
+  private addRegionHandling(iframe: HTMLIFrameElement): RegionHandling | null {
+    if (!iframe.contentWindow) {
+      console.error("IFrame not loaded");
+      return null;
+    }
+
+    const leftHoverSize = this.getLeftHoverSize();
+    const regionHandling = this.addGlueHandler(new RegionHandling(iframe.contentWindow), iframe);
+
+    // Left Hover
+    const widthLeft = leftHoverSize.width;
+    const heightLeft = leftHoverSize.height;
+    const regionLeft: Region = {
+      left: 0,
+      top: 0,
+      width: widthLeft,
+      height: heightLeft,
+      scope: RegionScope.Viewport,
+    };
+
+    const iframeRect = iframe.getBoundingClientRect();
+    // regionHandling.addEventListener('mouseenter', regionLeft, () => {
+    //   this.onHoverLeftCb(true);
+    //   console.log('mouseenter');
+    // });
+    // regionHandling.addEventListener('mouseout', regionLeft, () => {
+    //   this.onHoverLeftCb(false);
+    //   console.log('mouseexit');
+    // });
+    regionHandling.addEventListener('click', regionLeft, (opts: any) => {
+      const mouseData = opts[0];
+      this.iframeHoverRegionClicked(mouseData, iframe);
+    }, {
+      offset: {
+        x: iframeRect.left,
+      }
+    });
+    this.onHoverLeftCb(false);
+
+    // Right Hover
+    const rightHoverSize = this.getRightHoverSize();
+    const viewportRect = this.viewportRoot.getBoundingClientRect();
+    const widthRight = rightHoverSize.width;
+    const heightRight = rightHoverSize.height;
+    const regionRight: Region = {
+      left: viewportRect.width - widthRight,
+      top: 0,
+      width: widthRight,
+      height: heightRight,
+      scope: RegionScope.Viewport,
+    }
+
+    this.onHoverRightCb(false);
+    // regionHandling.addEventListener('mouseenter', regionRight, () => {
+    //   this.onHoverRightCb(true);
+    // });
+    // regionHandling.addEventListener('mouseout', regionRight, () => {
+    //   this.onHoverRightCb(false);
+    // });
+    regionHandling.addEventListener('click', regionRight, (opts: any) => {
+      const mouseData = opts[0];
+      this.iframeHoverRegionClicked(mouseData, iframe);
+    }, {
+      offset: {
+        x: iframeRect.left,
+      }
+    });
+
+    return regionHandling;
+  }
+
+  private iframeHoverRegionClicked(mouseData: EventData, iframe: HTMLIFrameElement): void {
+    const iframeRect = iframe.getBoundingClientRect();
+    const viewportRect = this.viewportRoot.getBoundingClientRect();
+
+    // The absolute position on the screen
+    const absPosX = mouseData.clientX + iframeRect.left;
+    const absPosY = mouseData.clientY + iframeRect.top;
+
+    // Determine if the mouse has clicked within the hover region
+    const leftHoverSize = this.getLeftHoverSize();
+    const withinLeftHover = this.pointWithinRect(
+      {
+        x: absPosX,
+        y: absPosY,
+      },
+      {
+        x: viewportRect.left,
+        y: viewportRect.top,
+        width: leftHoverSize.width,
+        height: leftHoverSize.height,
+      }
+    );
+
+    const rightHoverSize = this.getLeftHoverSize();
+    const withinRightHover = this.pointWithinRect(
+      {
+        x: absPosX,
+        y: absPosY,
+      },
+      {
+        x: viewportRect.width - viewportRect.left,
+        y: viewportRect.top,
+        width: rightHoverSize.width,
+        height: rightHoverSize.height,
+      }
+    );
+
+    if (withinLeftHover) {
+      this.previousScreen();
+    }
+    if (withinRightHover) {
+      this.nextScreen();
+    }
+  }
+
+  private pointWithinRect(point: Point, rect: Rect) {
+    return (
+      (point.x >= rect.x && point.x <= rect.x + rect.width) &&
+      (point.y >= rect.y && point.y <= rect.y + rect.height)
+    );
   }
 
   private bindOwnMethods(): void {
@@ -190,6 +434,26 @@ export class R2NavigatorView {
     this.rendCtx.rendition.viewport.setPrefetchSize(Math.ceil(availableWidth * 0.1));
     if (willRefreshLayout) {
       this.rendCtx.rendition.refreshPageLayout();
+    }
+  }
+
+  private viewportContentChanged(): void {
+    this.updateHoverRegion();
+  }
+
+  private updateHoverRegion(): void {
+    for (const handler of this.regionHandlers) {
+      const iframe = this.glueToIframeMap.get(handler);
+      if (!iframe) {
+        continue;
+      }
+      const iframeRect = iframe.getBoundingClientRect();
+      handler.setOptions({
+        offset: {
+          x: iframeRect.left,
+          y: iframeRect.top,
+        },
+      });
     }
   }
 

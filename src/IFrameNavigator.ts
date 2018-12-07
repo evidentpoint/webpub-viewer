@@ -238,10 +238,6 @@ export default class IFrameNavigator implements Navigator {
         navigator.updateBookView();
         navigator.setupEvents();
 
-        // Debug
-        // @ts-ignore
-        window.context = navigator.renditionContext;
-
         // await navigator.start(config.element, config.manifestUrl);
         return navigator;
     }
@@ -254,6 +250,16 @@ export default class IFrameNavigator implements Navigator {
         this.navView.addLocationChangedListener(() => {
             this.navigatorPositionChanged();
         });
+
+        const size = {
+            width: 200,
+        };
+        this.navView.addHoverLeftListener((isHovering: boolean) => {
+            this.handleLeftHover(isHovering);
+        }, size);
+        this.navView.addHoverRightListener((isHovering: boolean) => {
+            this.handleRightHover(isHovering);
+        }, size);
     }
 
     private async reloadNavigator(): Promise<void> {
@@ -265,6 +271,7 @@ export default class IFrameNavigator implements Navigator {
         this.navView = new R2NavigatorView({
             viewAsVertical: shouldScroll,
             enableScroll: shouldScroll,
+            viewport: this.iframeRoot,
         });
         // this.navView = new SimpleNavigatorView({
         //     paginator: <PaginatedBookView> this.paginator,
@@ -1082,23 +1089,34 @@ export default class IFrameNavigator implements Navigator {
         this.navView.nextScreen();
     }
 
-    private handleLeftHover(): void {
-        if (this.paginator) { 
-            if (this.paginator.onFirstPage() && !this.previousChapterLink.hasAttribute("href")) {
-                this.iframe.className = ""; 
-            } else {
-                this.iframe.className = "left-hover";
-            }
+    private handleLeftHover(isHovering: boolean): void {
+        // if (this.paginator) { 
+        //     if (this.paginator.onFirstPage() && !this.previousChapterLink.hasAttribute("href")) {
+        //         this.iframe.className = ""; 
+        //     } else {
+        //         this.iframe.className = "left-hover";
+        //     }
+        // }
+
+        if (isHovering) {
+            // this.iframe.setAttribute('class', 'left-hover');
+        } else {
+            // this.iframe.setAttribute('class', '');
         }
     }
 
-    private handleRightHover(): void {
-        if (this.paginator) { 
-            if (this.paginator.onLastPage() && !this.nextChapterLink.hasAttribute("href")) {
-                this.iframe.className = ""; 
-            } else {
-                this.iframe.className = "right-hover";
-            }
+    private handleRightHover(isHovering: boolean): void {
+        // if (this.paginator) { 
+        //     if (this.paginator.onLastPage() && !this.nextChapterLink.hasAttribute("href")) {
+        //         this.iframe.className = ""; 
+        //     } else {
+        //         this.iframe.className = "right-hover";
+        //     }
+        // }
+        if (isHovering) {
+            // this.iframe.setAttribute('class', 'right-hover');
+        } else {
+            // this.iframe.setAttribute('class', '');
         }
     }
 

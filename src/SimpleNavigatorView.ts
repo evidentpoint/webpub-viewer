@@ -37,6 +37,14 @@ export class SimpleNavigatorView {
   public addLocationChangedListener(callback: Function) {
   }
 
+  // @ts-ignore
+  public addHoverLeftListener(callback: Function, settings?: any) {
+  }
+
+  // @ts-ignore
+  public addHoverRightListener(callback: Function, settings?: any) {
+  }
+
   public async getChapterInfo(): Promise<ChapterInfo> {
     let chapterInfo: ChapterInfo = {
       title: '',
