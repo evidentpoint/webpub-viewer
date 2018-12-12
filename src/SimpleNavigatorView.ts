@@ -34,6 +34,10 @@ export class SimpleNavigatorView {
   }
 
   // @ts-ignore
+  public getShareLink(): string {
+  }
+
+  // @ts-ignore
   public addLocationChangedListener(callback: Function) {
   }
 

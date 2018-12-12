@@ -24,8 +24,8 @@ import * as BrowserUtilities from "./BrowserUtilities";
 import * as HTMLUtilities from "./HTMLUtilities";
 import * as IconLib from "./IconLib";
 import { R2NavigatorView } from "./R2NavigatorView";
-// @ts-ignore
 import { SimpleNavigatorView, ChapterInfo } from "./SimpleNavigatorView";
+import { ShareBookLocation, SnapEdge } from "./ShareBookLocation";
 
 // const epubReadingSystemObject: EpubReadingSystemObject = {
 //     name: "Webpub viewer",
@@ -92,7 +92,7 @@ const template = `
         ${IconLib.icons.menu}
       </button>
     </div>
-    <div class="controls">
+    <div id="controls-toolbar" class="controls">
         ${IconLib.icons.closeOriginal}
         ${IconLib.icons.checkOriginal}
       <a href="#settings-control" class="scrolling-suggestion" style="display: none">
@@ -107,6 +107,8 @@ const template = `
             <span class="setting-text contents" id="contents-label">Contents</span>
           </button>
           <div class="contents-view controls-view inactive" aria-hidden="true"></div>
+        </li>
+        <li id="share-btn-container">
         </li>
         <li>
           <button id="settings-control" class="settings" aria-labelledby="settings-label" aria-expanded="false" aria-haspopup="true">
@@ -220,6 +222,7 @@ export default class IFrameNavigator implements Navigator {
     private canFullscreen: boolean = (document as any).fullscreenEnabled || (document as any).webkitFullscreenEnabled || (document as any).mozFullScreenEnabled || (document as any).msFullscreenEnabled;
     private iframeRoot: HTMLElement;
     private navView: R2NavigatorView | SimpleNavigatorView;
+    private shareBookLocation: ShareBookLocation;
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -249,7 +252,13 @@ export default class IFrameNavigator implements Navigator {
         this.navigatorPositionChanged();
         this.navView.addLocationChangedListener(() => {
             this.navigatorPositionChanged();
+            const shareLink = this.navView.getShareLink();
+
+            this.shareBookLocation.setShareLink(shareLink);
         });
+        const shareLink = this.navView.getShareLink();
+        this.shareBookLocation.setShareLink(shareLink);
+
 
         const size = {
             width: 200,
@@ -383,6 +392,17 @@ export default class IFrameNavigator implements Navigator {
             }
             this.settings.renderControls(this.settingsView);
 
+            this.shareBookLocation = new ShareBookLocation({
+                appendToElement: 'share-btn-container',
+                snapToElement: 'controls-toolbar',
+                snapToElementEdge: SnapEdge.BOTTOM,
+                centerTo: 'share-btn-container',
+                focusTrapCb: this.setupModalFocusTrap.bind(this),
+                onShowCb: () => {
+                    this.hidePopovers('share');
+                },
+            });
+
             // Trap keyboard focus inside the settings view when it's displayed.
             const settingsButtons = this.settingsView.querySelectorAll("button");
             if (settingsButtons && settingsButtons.length > 0) {
@@ -471,7 +491,7 @@ export default class IFrameNavigator implements Navigator {
         this.setActiveTOCItem(chapterInfo.href);
     }
 
-    private setupModalFocusTrap(modal: HTMLDivElement, closeButton: HTMLButtonElement, lastFocusableElement: HTMLButtonElement | HTMLAnchorElement): void {
+    private setupModalFocusTrap(modal: HTMLDivElement | HTMLDialogElement, closeButton: HTMLButtonElement, lastFocusableElement: HTMLButtonElement | HTMLAnchorElement): void {
         // Trap keyboard focus in a modal dialog when it's displayed.
         const TAB_KEY = 9;
 
@@ -870,7 +890,7 @@ export default class IFrameNavigator implements Navigator {
         window.history.back();
     }
 
-    private isDisplayed(element: HTMLDivElement | HTMLUListElement) {
+    private isDisplayed(element: HTMLDivElement | HTMLUListElement | HTMLDialogElement) {
         return element.className.indexOf(" active") !== -1;
     }
 
@@ -902,6 +922,31 @@ export default class IFrameNavigator implements Navigator {
         }
         for (const link of links) {
             link.tabIndex = 0;
+        }
+    }
+
+    private hidePopovers(exception?: string) {
+        if (exception !== 'settings') {
+            this.hideSettings();
+        }
+        if (exception !== 'toc') {
+            this.hideTOC();
+        }
+        if (exception !== 'share') {
+            this.shareBookLocation.hideModal();
+        }
+    }
+
+    private togglePopover(popover: string) {
+        this.hidePopovers(popover);
+
+        switch(popover) {
+            case 'settings':
+                this.toggleModal(this.settingsView, this.settingsControl);
+                break;
+            case 'toc':
+                this.toggleModal(this.tocView, this.contentsControl);
+                break;
         }
     }
 
@@ -1031,8 +1076,7 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private handleToggleLinksClick(event: MouseEvent | TouchEvent): void {
-        this.hideTOC();
-        this.hideSettings();
+        this.hidePopovers();
         this.toggleDisplay(this.links, this.menuControl);
         if (this.settings.getSelectedView() === this.scroller) {
             // if (!this.scroller.atBottom()) {
@@ -1249,8 +1293,7 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private handleContentsClick(event: MouseEvent): void {
-        this.hideSettings();
-        this.toggleModal(this.tocView, this.contentsControl);
+        this.togglePopover('toc');
         // While the TOC is displayed, prevent scrolling in the book.
         if (this.settings.getSelectedView() === this.scroller) {
             if (this.isDisplayed(this.tocView)) {
@@ -1286,8 +1329,7 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private handleSettingsClick(event: MouseEvent): void {
-        this.hideTOC();
-        this.toggleModal(this.settingsView, this.settingsControl);
+        this.togglePopover('settings');
         event.preventDefault();
         event.stopPropagation();
     }

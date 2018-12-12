@@ -63,6 +63,7 @@ export class R2NavigatorView {
   private enableScroll: boolean = false;
   private regionHandlers: RegionHandling[] = [];
   private glueToIframeMap: Map<GlueHandler, HTMLIFrameElement> = new Map();
+  private shouldCheckWindowHref: boolean = false;
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -85,6 +86,29 @@ export class R2NavigatorView {
     }
 
     this.bindOwnMethods();
+    this.shouldCheckWindowHref = true;
+
+    // Add an event listener for window location hash changes
+    window.addEventListener('hashchange', () => {
+      this.goToWindowLocation();
+    }, false)
+  }
+
+  public getShareLink(): string {
+    const hrefWithoutHash = window.location.href.split(window.location.hash)[0];
+    const loc = this.rendCtx.navigator.getCurrentLocation();
+    if (!loc) {
+      console.error("No location was retrieved");
+      return '';
+    }
+
+    let newHref = hrefWithoutHash + `#href=${loc.getHref()}`;
+    let cfi = loc.getLocation();
+    if (cfi) {
+      newHref += `&cfi=${cfi}`;
+    }
+
+    return newHref;
   }
 
   public addLocationChangedListener(callback: Function) {
@@ -195,11 +219,11 @@ export class R2NavigatorView {
     this.rendCtx.navigator.previousScreen();
   }
 
-  public goToHrefLocation(href: string): void {
+  public async goToHrefLocation(href: string, cfi: string = ''): Promise<void> {
     const pub = this.rendCtx.rendition.getPublication();
     const relHref = pub.getHrefRelativeToManifest(href);
-    const loc = new Location('', relHref, true);
-    this.rendCtx.navigator.gotoLocation(loc);
+    const loc = new Location(cfi, relHref, true);
+    await this.rendCtx.navigator.gotoLocation(loc);
   }
 
   public destroy(): void {
@@ -241,7 +265,27 @@ export class R2NavigatorView {
       this.iframeLoaded(iframe);
     });
 
-    await this.rendCtx.navigator.gotoBegin();
+
+    // Check the window location only once
+    if (this.shouldCheckWindowHref) {
+      await this.goToWindowLocation();
+      this.shouldCheckWindowHref = false;
+    } else {
+      this.rendCtx.navigator.gotoBegin();
+    }
+  }
+
+  public async goToWindowLocation(): Promise<void> {
+    const hash = window.location.hash;
+    const arr = hash.split('&');
+    const href = (arr[0] && arr[0].split('href=')[1]) || '';
+    const cfi = (arr[1] && arr[1].split('cfi=')[1]) || '';
+
+    if (href || cfi) {
+      await this.goToHrefLocation(href, cfi);
+    } else {
+      await this.rendCtx.navigator.gotoBegin();
+    }
   }
 
   private iframeLoaded(iframe: HTMLIFrameElement): void {
