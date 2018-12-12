@@ -95,7 +95,10 @@ export class R2NavigatorView {
   }
 
   public getShareLink(): string {
-    const hrefWithoutHash = window.location.href.split(window.location.hash)[0];
+    let hrefWithoutHash = window.location.href;
+    if (window.location.hash.length > 0) {
+      hrefWithoutHash = window.location.href.split(window.location.hash)[0];
+    }
     const loc = this.rendCtx.navigator.getCurrentLocation();
     if (!loc) {
       console.error("No location was retrieved");
