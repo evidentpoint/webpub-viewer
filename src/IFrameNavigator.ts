@@ -20,7 +20,7 @@ import Manifest from "./Manifest";
 import { Link } from "./Manifest";
 import BookSettings from "./BookSettings";
 import EventHandler from "./EventHandler";
-import * as BrowserUtilities from "./BrowserUtilities";
+// import * as BrowserUtilities from "./BrowserUtilities";
 import * as HTMLUtilities from "./HTMLUtilities";
 import * as IconLib from "./IconLib";
 import { R2NavigatorView } from "./R2NavigatorView";
@@ -1189,8 +1189,8 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private handleResize(): void {
-        const selectedView = this.settings.getSelectedView();
-        const oldPosition = selectedView.getCurrentPosition();
+        // const selectedView = this.settings.getSelectedView();
+        // const oldPosition = selectedView.getCurrentPosition();
 
         // const fontSize = this.settings.getSelectedFontSize();
         // const body = HTMLUtilities.findRequiredIframeElement(this.iframe.contentDocument, "body") as HTMLBodyElement;
@@ -1220,40 +1220,40 @@ export default class IFrameNavigator implements Navigator {
         // If the links are hidden, show them temporarily
         // to determine the top and bottom heights.
 
-        const linksHidden = !this.isDisplayed(this.links);
+        // const linksHidden = !this.isDisplayed(this.links);
 
-        if (linksHidden) {
-            this.toggleDisplay(this.links);
-        }
+        // if (linksHidden) {
+        //     this.toggleDisplay(this.links);
+        // }
 
-        const topHeight = this.links.clientHeight;
-        this.infoTop.style.height = topHeight + "px";
+        // const topHeight = this.links.clientHeight;
+        // this.infoTop.style.height = topHeight + "px";
 
-        if (linksHidden) {
-            this.toggleDisplay(this.links);
-        }
+        // if (linksHidden) {
+        //     this.toggleDisplay(this.links);
+        // }
 
-        const linksBottomHidden = !this.isDisplayed(this.linksBottom);
-        if (linksBottomHidden) {
-            // this.toggleDisplay(this.linksBottom);
-        }
+        // const linksBottomHidden = !this.isDisplayed(this.linksBottom);
+        // if (linksBottomHidden) {
+        //     this.toggleDisplay(this.linksBottom);
+        // }
 
-        const bottomHeight = this.linksBottom.clientHeight;
-        this.infoBottom.style.height = bottomHeight + "px";
+        // const bottomHeight = this.linksBottom.clientHeight;
+        // this.infoBottom.style.height = bottomHeight + "px";
 
-        if (linksBottomHidden) {
-            // this.toggleDisplay(this.linksBottom);
-        }
+        // if (linksBottomHidden) {
+        //     this.toggleDisplay(this.linksBottom);
+        // }
 
-        if (this.paginator) {
-            this.paginator.height = (BrowserUtilities.getHeight() - topHeight - bottomHeight - 10);
-        }
-        if (this.scroller) {
-            this.scroller.height = (BrowserUtilities.getHeight() - topHeight - bottomHeight - 10);
-        }
+        // if (this.paginator) {
+        //     this.paginator.height = (BrowserUtilities.getHeight() - topHeight - bottomHeight - 10);
+        // }
+        // if (this.scroller) {
+        //     this.scroller.height = (BrowserUtilities.getHeight() - topHeight - bottomHeight - 10);
+        // }
 
-        selectedView.goToPosition(oldPosition);
-        this.updatePositionInfo();
+        // selectedView.goToPosition(oldPosition);
+        // this.updatePositionInfo();
     }
 
     private updatePositionInfo() {
