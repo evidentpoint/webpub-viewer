@@ -270,6 +270,12 @@ export class R2NavigatorView {
 
 
     this.rendCtx.navigator.gotoBegin();
+    this.rendCtx.navigator.ensureLoaded().then(() => {
+      if (this.shouldCheckWindowHref) {
+        this.goToWindowLocation();
+        this.shouldCheckWindowHref = false;
+      }
+    });
   }
 
   public async goToWindowLocation(): Promise<void> {
@@ -285,14 +291,6 @@ export class R2NavigatorView {
 
   private iframeLoaded(iframe: HTMLIFrameElement): void {
     this.addRegionHandling(iframe);
-
-    // I don't like this. It's purpose is to only get called once when the navigator fully loads,
-    // in order to start on the same location as the url. This method gets called every time
-    // a new iframe is loaded.
-    if (this.shouldCheckWindowHref) {
-      this.goToWindowLocation();
-      this.shouldCheckWindowHref = false;
-    }
   }
 
   private addGlueHandler(glue: GlueHandler, iframe: HTMLIFrameElement): GlueHandler {
