@@ -94,12 +94,12 @@ export class R2NavigatorView {
     }, false)
   }
 
-  public getShareLink(): string {
+  public async getShareLink(): Promise<string> {
     let hrefWithoutHash = window.location.href;
     if (window.location.hash.length > 0) {
       hrefWithoutHash = window.location.href.split(window.location.hash)[0];
     }
-    const loc = this.rendCtx.navigator.getCurrentLocation();
+    const loc = await this.rendCtx.navigator.getCurrentLocationAsync();
     if (!loc) {
       console.error("No location was retrieved");
       return '';
@@ -269,13 +269,7 @@ export class R2NavigatorView {
     });
 
 
-    // Check the window location only once
-    if (this.shouldCheckWindowHref) {
-      await this.goToWindowLocation();
-      this.shouldCheckWindowHref = false;
-    } else {
-      this.rendCtx.navigator.gotoBegin();
-    }
+    this.rendCtx.navigator.gotoBegin();
   }
 
   public async goToWindowLocation(): Promise<void> {
@@ -286,13 +280,19 @@ export class R2NavigatorView {
 
     if (href || cfi) {
       await this.goToHrefLocation(href, cfi);
-    } else {
-      await this.rendCtx.navigator.gotoBegin();
     }
   }
 
   private iframeLoaded(iframe: HTMLIFrameElement): void {
     this.addRegionHandling(iframe);
+
+    // I don't like this. It's purpose is to only get called once when the navigator fully loads,
+    // in order to start on the same location as the url. This method gets called every time
+    // a new iframe is loaded.
+    if (this.shouldCheckWindowHref) {
+      this.goToWindowLocation();
+      this.shouldCheckWindowHref = false;
+    }
   }
 
   private addGlueHandler(glue: GlueHandler, iframe: HTMLIFrameElement): GlueHandler {

@@ -252,12 +252,9 @@ export default class IFrameNavigator implements Navigator {
         this.navigatorPositionChanged();
         this.navView.addLocationChangedListener(() => {
             this.navigatorPositionChanged();
-            const shareLink = this.navView.getShareLink();
-
-            this.shareBookLocation.setShareLink(shareLink);
+            this.updateShareLink();
         });
-        const shareLink = this.navView.getShareLink();
-        this.shareBookLocation.setShareLink(shareLink);
+        this.updateShareLink();
 
 
         const size = {
@@ -269,6 +266,18 @@ export default class IFrameNavigator implements Navigator {
         this.navView.addHoverRightListener((isHovering: boolean) => {
             this.handleRightHover(isHovering);
         }, size);
+    }
+
+    private updateShareLink(): void {
+        const promise = this.navView.getShareLink();
+        // Check if we have the string value, if not - wait for the promise to finish
+        if (typeof(promise) === 'string') {
+            this.shareBookLocation.setShareLink(promise);
+        } else {
+            promise.then((shareLink) => {
+                this.shareBookLocation.setShareLink(shareLink);
+            });
+        }
     }
 
     private async reloadNavigator(): Promise<void> {
