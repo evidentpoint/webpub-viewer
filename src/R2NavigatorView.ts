@@ -8,7 +8,9 @@ import {
   SpreadMode,
   ScrollMode,
   SettingName,
-  ViewportResizer
+  ViewportResizer,
+  PageTitleTocResolver,
+  PageBreakData,
 } from '@readium/navigator-web';
 
 import {
@@ -64,6 +66,7 @@ export class R2NavigatorView {
   private regionHandlers: RegionHandling[] = [];
   private glueToIframeMap: Map<GlueHandler, HTMLIFrameElement> = new Map();
   private shouldCheckWindowHref: boolean = false;
+  private pageTitleTocResolver: PageTitleTocResolver;
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -92,6 +95,10 @@ export class R2NavigatorView {
     window.addEventListener('hashchange', () => {
       this.goToWindowLocation();
     }, false)
+  }
+
+  public isVerticalLayout(): boolean {
+    return this.rendCtx.rendition.isVerticalLayout();
   }
 
   public async getShareLink(): Promise<string> {
@@ -161,6 +168,10 @@ export class R2NavigatorView {
   }
 
     return chapterInfo;
+  }
+
+  public async getVisiblePageBreaks(): Promise<PageBreakData[]> {
+    return await this.pageTitleTocResolver.getVisiblePageBreaks();
   }
 
   public updateFont(font: string): void {
@@ -249,6 +260,7 @@ export class R2NavigatorView {
     this.viewportRoot = root;
 
     this.rendCtx = new R2RenditionContext(rendition, loader);
+    this.pageTitleTocResolver = new PageTitleTocResolver(this.rendCtx);
     this.addLocationChangedListener(() => {
       this.viewportContentChanged();
     });

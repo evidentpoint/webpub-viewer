@@ -491,6 +491,19 @@ iframe {
   display: flex;
 }
 
+.page-marker-container {
+  position: absolute;
+}
+
+.page-break-marker {
+  position: absolute;
+}
+
+.control-container {
+  display: grid;
+  min-width: 50px;
+}
+
 .scrolling-suggestion {
   position: absolute;
   left: -10000px;

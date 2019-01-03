@@ -38,6 +38,14 @@ export class SimpleNavigatorView {
   }
 
   // @ts-ignore
+  public async getVisiblePageBreaks(): Promise<any> {
+  }
+
+  // @ts-ignore
+  public isVerticalLayout(): boolean {
+  }
+
+  // @ts-ignore
   public addLocationChangedListener(callback: Function) {
   }
 

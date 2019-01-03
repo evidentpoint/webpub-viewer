@@ -26,6 +26,7 @@ import * as IconLib from "./IconLib";
 import { R2NavigatorView } from "./R2NavigatorView";
 import { SimpleNavigatorView, ChapterInfo } from "./SimpleNavigatorView";
 import { ShareBookLocation, SnapEdge } from "./ShareBookLocation";
+import { PageBreakMarkers } from "./PageBreakMarkers";
 
 // const epubReadingSystemObject: EpubReadingSystemObject = {
 //     name: "Webpub viewer",
@@ -61,24 +62,28 @@ const template = `
             <span class="book-title"></span>
         </div>
         <div class="page-container">
-            <div id="prev-page-btn" class="flip-page-container">
-                <button class="flip-page-btn prev">
-                    <svg viewBox="0 0 24 24" role="img" width="24" height="24"
-                    aria-labelledby="next-page-btn-title" class="flip-page-icon prev">
-                        <title id="next-page-btn-title">Switch to next page</title>
-                        <path d="M16.59 8.59 L12 13.17 7.41 8.59 6 10 l6 6 6-6-1.41-1.41z"/>
-                    </svg>
-                </button>
+            <div id="left-control-container" class="control-container left">
+                <div id="prev-page-btn" class="flip-page-container">
+                    <button class="flip-page-btn prev">
+                        <svg viewBox="0 0 24 24" role="img" width="24" height="24"
+                        aria-labelledby="next-page-btn-title" class="flip-page-icon prev">
+                            <title id="next-page-btn-title">Switch to next page</title>
+                            <path d="M16.59 8.59 L12 13.17 7.41 8.59 6 10 l6 6 6-6-1.41-1.41z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
             <div id="iframe-container"></div>
-            <div id="next-page-btn" class="flip-page-container">
-                <button class="flip-page-btn next">
-                    <svg viewBox="0 0 24 24" role="img" width="24" height="24"
-                        aria-labelledby="next-page-btn-title" class="flip-page-icon next">
-                        <title id="next-page-btn-title">Switch to next page</title>
-                        <path d="M16.59 8.59 L12 13.17 7.41 8.59 6 10 l6 6 6-6-1.41-1.41z"/>
-                    </svg>
-                </button>
+            <div id="right-control-container" class="control-container right">
+                <div id="next-page-btn" class="flip-page-container">
+                    <button class="flip-page-btn next">
+                        <svg viewBox="0 0 24 24" role="img" width="24" height="24"
+                            aria-labelledby="next-page-btn-title" class="flip-page-icon next">
+                            <title id="next-page-btn-title">Switch to next page</title>
+                            <path d="M16.59 8.59 L12 13.17 7.41 8.59 6 10 l6 6 6-6-1.41-1.41z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
         <div id="bottom-info-bar" class="info bottom">
@@ -223,6 +228,7 @@ export default class IFrameNavigator implements Navigator {
     private iframeRoot: HTMLElement;
     private navView: R2NavigatorView | SimpleNavigatorView;
     private shareBookLocation: ShareBookLocation;
+    private pageBreakMarkers: PageBreakMarkers;
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -234,10 +240,15 @@ export default class IFrameNavigator implements Navigator {
             config.upLink || null,
             config.allowFullscreen || null
         );
-        await navigator.start(config.element, config.manifestUrl);
-        navigator.handleIFrameLoad();
 
+        
+        await navigator.start(config.element, config.manifestUrl);
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
+        const leftContainer = document.getElementById('left-control-container');
+        const rightContainer = document.getElementById('right-control-container');
+        navigator.pageBreakMarkers = new PageBreakMarkers(leftContainer, rightContainer, navigator.iframeRoot);
+
+        navigator.handleIFrameLoad();
         navigator.updateBookView();
         navigator.setupEvents();
 
@@ -253,9 +264,9 @@ export default class IFrameNavigator implements Navigator {
         this.navView.addLocationChangedListener(() => {
             this.navigatorPositionChanged();
             this.updateShareLink();
+            this.updatePageBreakMarkers();
         });
-        this.updateShareLink();
-
+        // this.updateShareLink();
 
         const size = {
             width: 200,
@@ -280,6 +291,12 @@ export default class IFrameNavigator implements Navigator {
         }
     }
 
+    private updatePageBreakMarkers(): void {
+        if (this.pageBreakMarkers) {
+            this.pageBreakMarkers.updatePageBreaks();
+        }
+    }
+
     private async reloadNavigator(): Promise<void> {
         if (this.navView) {
             this.navView.destroy();
@@ -291,6 +308,8 @@ export default class IFrameNavigator implements Navigator {
             enableScroll: shouldScroll,
             viewport: this.iframeRoot,
         });
+        this.pageBreakMarkers.setNavView(this.navView);
+
         // this.navView = new SimpleNavigatorView({
         //     paginator: <PaginatedBookView> this.paginator,
         //     settings: this.settings,
@@ -491,6 +510,10 @@ export default class IFrameNavigator implements Navigator {
         }
 
         this.settings.onViewChange(this.updateBookView.bind(this));
+
+        this.iframeRoot.addEventListener('scroll', () => {
+            this.pageBreakMarkers.updatePageBreaks();
+        });
     }
 
     private async navigatorPositionChanged(): Promise<void> {
