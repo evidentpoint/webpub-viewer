@@ -19,13 +19,15 @@ export class PageBreakMarkers {
 
         if (this.parentContainerLeft) {
             this.markerContainerLeft = this.createMarkerContainer();
+            this.markerContainerLeft.classList.add('left');
             this.parentContainerLeft.appendChild(this.markerContainerLeft);
             this.prevPageButton = document.getElementById('prev-page-btn');
         }
-        
+
         if (this.parentContainerRight) {
             this.markerContainerRight = this.createMarkerContainer();
-            this.parentContainerRight.appendChild(this.markerContainerRight);
+            this.markerContainerRight.classList.add('right');
+            this.parentContainerRight.prepend(this.markerContainerRight);
             this.nextPageButton = document.getElementById('next-page-btn');
         }
     }
@@ -60,17 +62,20 @@ export class PageBreakMarkers {
         const vpRect = this.viewport.getBoundingClientRect();
         const vpTop = vpRect.top;
         let posY = pageBreak.rect.top + pageBreak.iframeRect.top - vpTop;
-
-        // Ensure the marker isn't placed over the button - always keep it either above or below it
-        const buttonRect = button.getBoundingClientRect();
         const markerRect = marker.getBoundingClientRect();
-        if (posY + vpTop + markerRect.height >= buttonRect.top && posY + vpTop <= buttonRect.top + buttonRect.height) {
-            if (posY + vpTop + markerRect.height / 2 < buttonRect.top + buttonRect.height / 2) {
-                posY = buttonRect.top - markerRect.height - vpTop;
-            } else {
-                posY = buttonRect.top + buttonRect.height - vpTop;
-            }
-        }
+
+        // Commented out for now - current solution is to have pagebreaks have their own margin / column.
+        // This code will need to be improved if both solutions are desired (separate margins or single margin)
+
+        // const buttonRect = button.getBoundingClientRect();
+        // // Ensure the marker isn't placed over the button - always keep it either above or below it
+        // if (posY + vpTop + markerRect.height >= buttonRect.top && posY + vpTop < buttonRect.top + buttonRect.height) {
+        //     if (posY + vpTop + markerRect.height / 2 < buttonRect.top + buttonRect.height / 2) {
+        //         posY = buttonRect.top - markerRect.height - vpTop;
+        //     } else {
+        //         posY = buttonRect.top + buttonRect.height - vpTop;
+        //     }
+        // }
 
         // Ensure the marker isn't placed outside of the container
         const container = button.parentElement;
@@ -110,14 +115,14 @@ export class PageBreakMarkers {
                 posX += pageBreak.offset.x;
             }
 
-            if (isVertical || posX >= viewportRect.width / 2) {
-                const marker = this.addMarkerToContainer(pageBreak, this.markerContainerRight);
+            if (isVertical || posX >= viewportRect.width / 2 + viewportRect.left) {
                 if (this.nextPageButton){
+                    const marker = this.addMarkerToContainer(pageBreak, this.markerContainerRight);
                     this.updateMarkerPosition(pageBreak, marker, this.nextPageButton);
                 }
-            } else if (posX < viewportRect.width / 2) {
-                const marker = this.addMarkerToContainer(pageBreak, this.markerContainerLeft);
+            } else if (posX < viewportRect.width / 2 + viewportRect.left) {
                 if (this.prevPageButton){
+                    const marker = this.addMarkerToContainer(pageBreak, this.markerContainerLeft);
                     this.updateMarkerPosition(pageBreak, marker, this.prevPageButton);
                 }
             }

@@ -492,15 +492,28 @@ iframe {
 }
 
 .page-marker-container {
-  position: absolute;
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  overflow: hidden;
+}
+
+.page-marker-container.left .page-break-marker {
+  right: 0;
+}
+
+.page-marker-container.right .page-break-marker {
+  left: 0;
 }
 
 .page-break-marker {
   position: absolute;
+  padding: 0 0.3em 0 0.3em;
+  color: rgba(190, 190, 190, 1);
 }
 
 .control-container {
-  display: grid;
+  display: flex;
   min-width: 50px;
 }
 
@@ -549,10 +562,10 @@ iframe {
 
   .controls {
     color: $ui-dark-gray;
-  
+
     .links {
       background-color: $sepia-bg;
-  
+
       .icon {
         color: $ui-dark-gray;
         fill: $ui-dark-gray;
@@ -576,7 +589,7 @@ iframe {
 
   .error {
     background-color: transparentize($sepia-bg, 0.125);
-  
+
     button {
       background-color: $ui-white;
       color: $error-red;
@@ -596,7 +609,7 @@ iframe {
     &.left-hover {
       background: linear-gradient(to right, darken($sepia-bg, 10%), darken($sepia-bg, 10%) 28%, $sepia-bg 30%, $sepia-bg);
     }
-  
+
     &.right-hover {
       background: linear-gradient(to left, darken($sepia-bg, 10%), darken($sepia-bg, 10%) 28%, $sepia-bg 30%, $sepia-bg);
     }
@@ -628,10 +641,10 @@ iframe {
 
   .controls {
     color: $ui-light-gray;
-  
+
     .links {
       background-color: $ui-black;
-  
+
       .icon {
         color: $ui-light-gray;
         fill: $ui-light-gray;
@@ -660,7 +673,7 @@ iframe {
 
   .error {
     background-color: transparentize($ui-black, 0.125);
-  
+
     button {
       background-color: lighten($ui-black, 10%);
       color: $error-red;
@@ -680,7 +693,7 @@ iframe {
     &.left-hover {
       background: linear-gradient(to right, lighten($ui-black, 10%), lighten($ui-black, 10%) 28%, $ui-black 30%, $ui-black);
     }
-  
+
     &.right-hover {
       background: linear-gradient(to left, lighten($ui-black, 10%), lighten($ui-black, 10%) 28%, $ui-black 30%, $ui-black);
     }

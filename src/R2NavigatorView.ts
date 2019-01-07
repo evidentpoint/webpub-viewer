@@ -540,13 +540,13 @@ export class R2NavigatorView {
 
   // Get available width for iframe container to sit within
   private getAvailableWidth(): number {
-      const prevBtn = document.getElementById('prev-page-btn');
+      const prevBtn = document.getElementById('left-control-container');
       let prevBtnWidth = 0;
       if (prevBtn) {
           const rect = prevBtn.getBoundingClientRect();
           prevBtnWidth = rect.width;
       }
-      const nextBtn = document.getElementById('next-page-btn');
+      const nextBtn = document.getElementById('right-control-container');
       let nextBtnWidth = 0;
       if (nextBtn) {
           const rect = nextBtn.getBoundingClientRect();
