@@ -37,7 +37,8 @@ export class PageBreakMarkers {
     }
 
     public async updatePageBreaks(): Promise<void> {
-        const pageBreaks = await this.navView.getVisiblePageBreaks();
+        const vpRect = this.viewport.getBoundingClientRect();
+        const pageBreaks = await this.navView.getVisiblePageBreaks(vpRect);
 
         if (!pageBreaks) {
             return;

@@ -35,25 +35,6 @@ interface HoverSize {
   height: number;
 }
 
-interface EventData {
-  clientX: number;
-  clientY: number;
-  screenX: number;
-  screenY: number;
-  pageX: number;
-  pageY: number;
-}
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface Rect extends Point {
-  width: number,
-  height: number,
-}
-
 type GlueHandler = RegionHandling;
 
 export class R2NavigatorView {
@@ -64,7 +45,7 @@ export class R2NavigatorView {
   private viewAsVertical: boolean = false;
   private enableScroll: boolean = false;
   private regionHandlers: RegionHandling[] = [];
-  private glueToIframeMap: Map<GlueHandler, HTMLIFrameElement> = new Map();
+  private glueToRegionUpdaterMap: Map<GlueHandler, Function[]> = new Map();
   private shouldCheckWindowHref: boolean = false;
   private pageTitleTocResolver: PageTitleTocResolver;
 
@@ -170,8 +151,8 @@ export class R2NavigatorView {
     return chapterInfo;
   }
 
-  public async getVisiblePageBreaks(): Promise<PageBreakData[]> {
-    return await this.pageTitleTocResolver.getVisiblePageBreaks();
+  public async getVisiblePageBreaks(vpRect: ClientRect | DOMRect): Promise<PageBreakData[]> {
+    return await this.pageTitleTocResolver.getVisiblePageBreaks(vpRect);
   }
 
   public updateFont(font: string): void {
@@ -274,7 +255,7 @@ export class R2NavigatorView {
     });
     await rendition.render();
     rendition.viewport.setScrollMode(this.enableScroll ? ScrollMode.Publication : ScrollMode.None);
-    
+
     this.resizer = new ViewportResizer(this.rendCtx, this.updateSize);
     loader.addIFrameLoadedListener((iframe: HTMLIFrameElement) => {
       this.iframeLoaded(iframe);
@@ -311,7 +292,6 @@ export class R2NavigatorView {
       return glue;
     }
     this.regionHandlers.push(glue);
-    this.glueToIframeMap.set(glue, iframe);
 
     // Destroy references on unload
     win.addEventListener('unload', () => {
@@ -324,7 +304,7 @@ export class R2NavigatorView {
   private destroyGlueHandler(glue: GlueHandler) {
     const index = this.regionHandlers.indexOf(glue);
     this.regionHandlers.splice(index, 1);
-    this.glueToIframeMap.delete(glue);
+    this.glueToRegionUpdaterMap.delete(glue);
     glue.destroy();
   }
 
@@ -350,121 +330,121 @@ export class R2NavigatorView {
       return null;
     }
 
-    const leftHoverSize = this.getLeftHoverSize();
-    const regionHandling = this.addGlueHandler(new RegionHandling(iframe.contentWindow), iframe);
+    const regionHandling: RegionHandling = this.addGlueHandler(new RegionHandling(iframe.contentWindow), iframe);
 
     // Left Hover
-    const widthLeft = leftHoverSize.width;
-    const heightLeft = leftHoverSize.height;
-    const regionLeft: Region = {
-      left: 0,
-      top: 0,
-      width: widthLeft,
-      height: heightLeft,
-      scope: RegionScope.Viewport,
-    };
-
-    const iframeRect = iframe.getBoundingClientRect();
-    // regionHandling.addEventListener('mouseenter', regionLeft, () => {
-    //   this.onHoverLeftCb(true);
-    //   console.log('mouseenter');
-    // });
-    // regionHandling.addEventListener('mouseout', regionLeft, () => {
-    //   this.onHoverLeftCb(false);
-    //   console.log('mouseexit');
-    // });
-    regionHandling.addEventListener('click', regionLeft, (opts: any) => {
-      const mouseData = opts[0];
-      this.iframeHoverRegionClicked(mouseData, iframe);
-    }, {
-      offset: {
-        x: iframeRect.left,
-      }
-    });
+    this.setupRegionListeners(regionHandling, this.getLeftHoverRegion, iframe);
     this.onHoverLeftCb(false);
 
     // Right Hover
-    const rightHoverSize = this.getRightHoverSize();
-    const viewportRect = this.viewportRoot.getBoundingClientRect();
-    const widthRight = rightHoverSize.width;
-    const heightRight = rightHoverSize.height;
-    const regionRight: Region = {
-      left: viewportRect.width - widthRight,
-      top: 0,
-      width: widthRight,
-      height: heightRight,
-      scope: RegionScope.Viewport,
-    }
-
+    this.setupRegionListeners(regionHandling, this.getRightHoverRegion, iframe);
     this.onHoverRightCb(false);
-    // regionHandling.addEventListener('mouseenter', regionRight, () => {
-    //   this.onHoverRightCb(true);
-    // });
-    // regionHandling.addEventListener('mouseout', regionRight, () => {
-    //   this.onHoverRightCb(false);
-    // });
-    regionHandling.addEventListener('click', regionRight, (opts: any) => {
-      const mouseData = opts[0];
-      this.iframeHoverRegionClicked(mouseData, iframe);
-    }, {
-      offset: {
-        x: iframeRect.left,
-      }
-    });
 
     return regionHandling;
   }
 
-  private iframeHoverRegionClicked(mouseData: EventData, iframe: HTMLIFrameElement): void {
-    const iframeRect = iframe.getBoundingClientRect();
-    const viewportRect = this.viewportRoot.getBoundingClientRect();
+  private setupRegionListeners(regionHandling: RegionHandling, regionGetter: Function, iframe: HTMLIFrameElement): void {
+    // regionHandling.addEventListener('mouseenter', region, () => {
+    //   console.log('mouseenter');
+    // });
+    // regionHandling.addEventListener('mouseout', region, () => {
+    //   console.log('mouseexit');
+    // });
+    const region = regionGetter();
+    regionHandling.addEventListener('click', region, () => {
+      this.iframeHoverRegionClicked(regionGetter, iframe);
+    }).then((listenerId: number) => {
+      // Function to be called later
+      // Updates the region of this specific listener
+      const regionUpdater = () => {
+        const region = regionGetter();
+        regionHandling.setRegion(region, listenerId);
+      };
 
-    // The absolute position on the screen
-    const absPosX = mouseData.clientX + iframeRect.left;
-    const absPosY = mouseData.clientY + iframeRect.top;
-
-    // Determine if the mouse has clicked within the hover region
-    const leftHoverSize = this.getLeftHoverSize();
-    const withinLeftHover = this.pointWithinRect(
-      {
-        x: absPosX,
-        y: absPosY,
-      },
-      {
-        x: viewportRect.left,
-        y: viewportRect.top,
-        width: leftHoverSize.width,
-        height: leftHoverSize.height,
-      }
-    );
-
-    const rightHoverSize = this.getLeftHoverSize();
-    const withinRightHover = this.pointWithinRect(
-      {
-        x: absPosX,
-        y: absPosY,
-      },
-      {
-        x: viewportRect.width - viewportRect.left,
-        y: viewportRect.top,
-        width: rightHoverSize.width,
-        height: rightHoverSize.height,
-      }
-    );
-
-    if (withinLeftHover) {
-      this.previousScreen();
-    }
-    if (withinRightHover) {
-      this.nextScreen();
-    }
+      this.addToRegionUpdaterMap(regionHandling, regionUpdater);
+      // Wait for the content in the iframe to finish loading, and then update the region
+      this.rendCtx.rendition.viewport.ensureLoaded().then(() => {
+        this.updateHoverRegion(regionHandling);
+      });
+    });
   }
 
-  private pointWithinRect(point: Point, rect: Rect) {
-    return (
-      (point.x >= rect.x && point.x <= rect.x + rect.width) &&
-      (point.y >= rect.y && point.y <= rect.y + rect.height)
-    );
+  private addToRegionUpdaterMap(regionHandling: RegionHandling, regionUpdater: Function): void {
+    const updaters = this.glueToRegionUpdaterMap.get(regionHandling) || [];
+
+    updaters.push(regionUpdater);
+    this.glueToRegionUpdaterMap.set(regionHandling, updaters);
+  }
+
+  private getLeftHoverRegion(): Region {
+    const leftHoverSize = this.getLeftHoverSize();
+    const region = {
+      left: 0,
+      top: 0,
+      width: 0,
+      height: 0,
+      scope: RegionScope.Viewport,
+    }
+
+    const startPos = this.rendCtx.rendition.viewport.getStartPosition();
+    if (!startPos) {
+      return region;
+    }
+
+    const pageWidth: number = this.rendCtx.rendition.getPageWidth();
+
+    return {
+      left: startPos.pageIndex * pageWidth,
+      top: 0,
+      width: leftHoverSize.width,
+      height: leftHoverSize.height,
+      scope: RegionScope.Viewport,
+    };
+  }
+
+  private getRightHoverRegion(): Region {
+    const rightHoverRegion: HoverSize = this.getRightHoverSize();
+    const region = {
+      left: 0,
+      top: 0,
+      width: 0,
+      height: 0,
+      scope: RegionScope.Viewport,
+    }
+
+    const endPos = this.rendCtx.rendition.viewport.getEndPosition();
+    if (!endPos) {
+      return region;
+    }
+
+    const pageWidth: number = this.rendCtx.rendition.getPageWidth();
+    const columnGap: number = this.rendCtx.rendition.viewSettings().getSetting(SettingName.ColumnGap) || 0;
+
+    return {
+      left: endPos.pageIndex * pageWidth - rightHoverRegion.width - columnGap,
+      top: 0,
+      width: rightHoverRegion.width,
+      height: rightHoverRegion.height,
+      scope: RegionScope.Viewport,
+    };
+  }
+
+  private iframeHoverRegionClicked(regionGetter: Function, iframe: HTMLIFrameElement): void {
+    const iframeRect = iframe.getBoundingClientRect();
+    const viewportRect = this.viewportRoot.getBoundingClientRect();
+    const region = regionGetter();
+
+    // We already know that a region was clicked, so we just need to figure out which region it was
+    const isLeftRegion = regionGetter === this.getLeftHoverRegion;
+    const isRightRegion = regionGetter === this.getRightHoverRegion;
+
+    // We're only interested in the leftmost and rightmost regions.
+    if (isRightRegion && region.left + iframeRect.left >= viewportRect.left + viewportRect.width / 2) {
+      this.nextScreen();
+    }
+    if (isLeftRegion && region.left + iframeRect.left < viewportRect.left + viewportRect.width / 2) {
+      this.previousScreen();
+    }
   }
 
   private bindOwnMethods(): void {
@@ -472,6 +452,8 @@ export class R2NavigatorView {
     this.updateFontSize = this.updateFontSize.bind(this);
     this.updateSize = this.updateSize.bind(this);
     this.updateTheme = this.updateTheme.bind(this);
+    this.getLeftHoverRegion = this.getLeftHoverRegion.bind(this);
+    this.getRightHoverRegion = this.getRightHoverRegion.bind(this);
   }
 
   private updateSize(willRefreshLayout: boolean = true): void {
@@ -495,23 +477,27 @@ export class R2NavigatorView {
   }
 
   private viewportContentChanged(): void {
-    this.updateHoverRegion();
+    this.updateHoverRegionAll();
   }
 
-  private updateHoverRegion(): void {
+  // Iterates through all region handlers
+  private updateHoverRegionAll(): void {
     for (const handler of this.regionHandlers) {
-      const iframe = this.glueToIframeMap.get(handler);
-      if (!iframe) {
-        continue;
-      }
-      const iframeRect = iframe.getBoundingClientRect();
-      handler.setOptions({
-        offset: {
-          x: iframeRect.left,
-          y: iframeRect.top,
-        },
-      });
+      this.updateHoverRegion(handler);
     }
+  }
+
+  private updateHoverRegion(handler: RegionHandling): void {
+    const regionUpdaters = this.glueToRegionUpdaterMap.get(handler);
+    if (!regionUpdaters) {
+      return;
+    }
+
+    regionUpdaters.forEach((regionUpdater) => {
+      if (regionUpdater) {
+        regionUpdater();
+      }
+    });
   }
 
   // Get available height for iframe container to sit within
