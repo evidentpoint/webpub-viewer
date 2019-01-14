@@ -165,7 +165,7 @@ export class R2NavigatorView {
       return this.rendCtx.rendition.viewport.getStartPosition();
     });
 
-    return startPos && startPos.pageIndex || 0;
+    return startPos && (startPos.pageIndex + 1) || 0;
   }
 
   public async getVisiblePageBreaks(vpRect: ClientRect | DOMRect): Promise<PageBreakData[]> {

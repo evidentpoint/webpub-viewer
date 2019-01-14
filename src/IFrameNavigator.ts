@@ -1291,7 +1291,7 @@ export default class IFrameNavigator implements Navigator {
         if (!this.navView.isVerticalLayout()) {
             const currentPage = await this.navView.getCurrentPageNumberOfStartSpine();
             const pageCount = await this.navView.getTotalPageCountOfStartSpine();
-            this.chapterPosition.innerHTML = "Page " + (currentPage + 1) + " of " + pageCount;
+            this.chapterPosition.innerHTML = "Page " + currentPage + " of " + pageCount;
         } else {
             this.chapterPosition.innerHTML = "";
         }
