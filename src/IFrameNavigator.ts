@@ -58,7 +58,7 @@ const template = `
             <button class="go-back">Go back</button>
             <button class="try-again">Try again</button>
         </div>
-        <div id="top-control-bar" class="info top">  
+        <div id="top-control-bar" class="info top">
             <span class="book-title"></span>
         </div>
         <div class="page-container">
@@ -241,7 +241,7 @@ export default class IFrameNavigator implements Navigator {
             config.allowFullscreen || null
         );
 
-        
+
         await navigator.start(config.element, config.manifestUrl);
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
         const leftContainer = document.getElementById('left-control-container');
@@ -261,10 +261,11 @@ export default class IFrameNavigator implements Navigator {
         this.navView.updateFontSize(settings.getSelectedFontSize());
 
         this.navigatorPositionChanged();
-        this.navView.addLocationChangedListener(() => {
+        this.navView.addLocationChangedListener(async () => {
             this.navigatorPositionChanged();
             this.updateShareLink();
             this.updatePageBreakMarkers();
+            await this.updatePositionInfo();
         });
         // this.updateShareLink();
 
@@ -591,7 +592,7 @@ export default class IFrameNavigator implements Navigator {
             // }
         } else if (this.settings.getSelectedView() === this.scroller) {
             this.scrollingSuggestion.style.display = "none";
-            
+
             // document.body.onscroll = () => {
             //     this.saveCurrentReadingPosition();
             //     if (this.scroller && this.scroller.atBottom()) {
@@ -640,7 +641,6 @@ export default class IFrameNavigator implements Navigator {
         if (nextPageBtn) {
             nextPageBtn.style.setProperty('display', displayState);
         }
-        this.updatePositionInfo();
         this.reloadNavigator();
     }
 
@@ -682,7 +682,7 @@ export default class IFrameNavigator implements Navigator {
             let href = "";
             if (link.href) {
                 href = new URL(link.href, this.manifestUrl.href).href;
-        
+
                 linkElement.href = href;
                 linkElement.innerHTML = link.title || "";
                 listItemElement.appendChild(linkElement);
@@ -1031,7 +1031,7 @@ export default class IFrameNavigator implements Navigator {
         this.infoTop.setAttribute("aria-hidden", "true");
         this.infoBottom.setAttribute("aria-hidden", "true");
 
-        if (control) {        
+        if (control) {
             control.setAttribute("aria-hidden", "false");
         }
         this.showElement(modal, control);
@@ -1067,7 +1067,7 @@ export default class IFrameNavigator implements Navigator {
                 const newIconClass = "icon inactive-icon";
                 activeIcon.setAttribute("class", newIconClass);
             }
-        
+
             if (inactiveIcon) {
                 const newIconClass = "icon active-icon";
                 inactiveIcon.setAttribute("class", newIconClass);
@@ -1166,9 +1166,9 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private handleLeftHover(isHovering: boolean): void {
-        // if (this.paginator) { 
+        // if (this.paginator) {
         //     if (this.paginator.onFirstPage() && !this.previousChapterLink.hasAttribute("href")) {
-        //         this.iframe.className = ""; 
+        //         this.iframe.className = "";
         //     } else {
         //         this.iframe.className = "left-hover";
         //     }
@@ -1182,9 +1182,9 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private handleRightHover(isHovering: boolean): void {
-        // if (this.paginator) { 
+        // if (this.paginator) {
         //     if (this.paginator.onLastPage() && !this.nextChapterLink.hasAttribute("href")) {
-        //         this.iframe.className = ""; 
+        //         this.iframe.className = "";
         //     } else {
         //         this.iframe.className = "right-hover";
         //     }
@@ -1212,7 +1212,6 @@ export default class IFrameNavigator implements Navigator {
             if ((element as HTMLAnchorElement).href.split("#")[0] === currentLocation) {
                 const elementId = (element as HTMLAnchorElement).href.split("#")[1];
                 this.settings.getSelectedView().goToElement(elementId, true);
-                this.updatePositionInfo();
                 this.saveCurrentReadingPosition();
                 event.preventDefault();
                 event.stopPropagation();
@@ -1288,14 +1287,14 @@ export default class IFrameNavigator implements Navigator {
         // this.updatePositionInfo();
     }
 
-    private updatePositionInfo() {
-        // if (this.settings.getSelectedView() === this.paginator) {
-        //     const currentPage = Math.round(this.paginator.getCurrentPage());
-        //     const pageCount = Math.round(this.paginator.getPageCount());
-        //     this.chapterPosition.innerHTML = "Page " + currentPage + " of " + pageCount;
-        // } else {
+    private async updatePositionInfo() {
+        if (!this.navView.isVerticalLayout()) {
+            const currentPage = await this.navView.getCurrentPageNumberOfStartSpine();
+            const pageCount = await this.navView.getTotalPageCountOfStartSpine();
+            this.chapterPosition.innerHTML = "Page " + (currentPage + 1) + " of " + pageCount;
+        } else {
             this.chapterPosition.innerHTML = "";
-        // }
+        }
     }
 
     private handlePreviousChapterClick(event: MouseEvent): void {
@@ -1392,7 +1391,7 @@ export default class IFrameNavigator implements Navigator {
     //         const newResource = readingPosition.resource.slice(0, readingPosition.resource.indexOf("#"))
     //         if (newResource === this.iframe.src) {
     //             // The resource isn't changing, but handle it like a new
-    //             // iframe load to hide the menus and popups and go to the 
+    //             // iframe load to hide the menus and popups and go to the
     //             // new element.
     //             this.handleIFrameLoad();
     //         } else {

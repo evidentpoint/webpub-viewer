@@ -66,6 +66,15 @@ export class SimpleNavigatorView {
     return chapterInfo;
   }
 
+  // Returns the total page number, of the spine item that's at the beginning of the viewport
+  public async getTotalPageCountOfStartSpine(): Promise<number> {
+    return 0;
+  }
+
+  public async getCurrentPageNumberOfStartSpine(): Promise<number> {
+    return 0;
+  }
+
   // @ts-ignore
   public updateFont(font: string): void {
 

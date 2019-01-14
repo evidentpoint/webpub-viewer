@@ -151,6 +151,23 @@ export class R2NavigatorView {
     return chapterInfo;
   }
 
+  // Returns the total page number, of the spine item that's at the beginning of the viewport
+  public async getTotalPageCountOfStartSpine(): Promise<number> {
+    const startPos = await this.rendCtx.rendition.viewport.ensureLoaded().then(() => {
+      return this.rendCtx.rendition.viewport.getStartPosition();
+    });
+
+    return startPos && startPos.spineItemPageCount || 0;
+  }
+
+  public async getCurrentPageNumberOfStartSpine(): Promise<number> {
+    const startPos = await this.rendCtx.rendition.viewport.ensureLoaded().then(() => {
+      return this.rendCtx.rendition.viewport.getStartPosition();
+    });
+
+    return startPos && startPos.pageIndex || 0;
+  }
+
   public async getVisiblePageBreaks(vpRect: ClientRect | DOMRect): Promise<PageBreakData[]> {
     return await this.pageTitleTocResolver.getVisiblePageBreaks(vpRect);
   }
