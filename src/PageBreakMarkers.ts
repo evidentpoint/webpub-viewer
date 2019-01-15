@@ -112,8 +112,8 @@ export class PageBreakMarkers {
 
         for (const pageBreak of pageBreaks) {
             let posX = pageBreak.rect.left;
-            if (pageBreak.offset) {
-                posX += pageBreak.offset.x;
+            if (pageBreak.iframeRect) {
+                posX += pageBreak.iframeRect.left;
             }
 
             if (isVertical || posX >= viewportRect.width / 2 + viewportRect.left) {
