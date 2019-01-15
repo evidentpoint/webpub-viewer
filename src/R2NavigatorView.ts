@@ -125,30 +125,26 @@ export class R2NavigatorView {
   }
 
   public async getChapterInfo(): Promise<ChapterInfo> {
-    let chapterInfo: ChapterInfo = {
+    let firstChapterInfo: ChapterInfo = {
       title: '',
       href: '',
     }
+    const pub = this.rendCtx.rendition.getPublication();
+    const toc = pub.toc;
+    if (toc) {
+      firstChapterInfo.title = toc[0].title;
+      firstChapterInfo.href = toc[0].href;
+    }
 
+    let chapterInfo;
     if (this.rendCtx) {
-      const pub = this.rendCtx.rendition.getPublication();
       const currentLoc = await this.rendCtx.navigator.getCurrentLocationAsync();
-      let currentChap;
       if (currentLoc) {
-          const chapterHref = currentLoc.getHref()
-          currentChap = pub.toc.find((item: any) => {
-              return ( chapterHref === item.href);
-          });
-
-          if (!currentChap) {
-              currentChap = pub.toc[0];
-          }
-          chapterInfo.title = currentChap.title;
-          chapterInfo.href = chapterHref;
+          chapterInfo = this.pageTitleTocResolver.getTocLinkFromLocation(currentLoc);
       }
   }
 
-    return chapterInfo;
+    return chapterInfo || firstChapterInfo;
   }
 
   // Returns the total page number, of the spine item that's at the beginning of the viewport
