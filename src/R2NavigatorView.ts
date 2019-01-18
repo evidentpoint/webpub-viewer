@@ -164,8 +164,8 @@ export class R2NavigatorView {
     return startPos && (startPos.pageIndex + 1) || 0;
   }
 
-  public async getVisiblePageBreaks(vpRect: ClientRect | DOMRect): Promise<PageBreakData[]> {
-    return await this.pageTitleTocResolver.getVisiblePageBreaks(vpRect);
+  public async getVisiblePageBreaks(): Promise<PageBreakData[]> {
+    return await this.pageTitleTocResolver.getVisiblePageBreaks();
   }
 
   public updateFont(font: string): void {
@@ -491,6 +491,7 @@ export class R2NavigatorView {
 
   private viewportContentChanged(): void {
     this.updateHoverRegionAll();
+    this.pageTitleTocResolver.updatePageListMap();
   }
 
   // Iterates through all region handlers
