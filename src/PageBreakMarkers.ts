@@ -77,9 +77,7 @@ export class PageBreakMarkers {
 
     private updateMarkerPosition(pageBreak: PageBreakData, marker: HTMLDivElement, container: HTMLDivElement): void {
         // We just need the top position of the viewport to correctly calculate the marker position
-        const vpRect = this.viewport.getBoundingClientRect();
-        const vpTop = vpRect.top;
-        let posY = pageBreak.rect.top + pageBreak.iframeRect.top - vpTop;
+        let posY = pageBreak.rect.top;
         const markerRect = marker.getBoundingClientRect();
 
         if (container) {
