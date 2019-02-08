@@ -55,6 +55,6 @@
     "requirejs": "^2.3.2",
     "rimraf": "^2.6.2",
     "sinon": "^6.0.1",
-    "typescript": "^2.9.2"
+    "typescript": "^3.2.2"
   }
 }
