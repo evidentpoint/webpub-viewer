@@ -1,5 +1,5 @@
 //////////////////////////////
-// Settings View Sytles     //
+// Settings View Styles     //
 //////////////////////////////
 .settings-view {
   overflow: hidden;
@@ -10,7 +10,7 @@
   user-select: none;
 
   > .settings-menu {
-    background-color: darken($ui-white, 2.5%);
+    background-color: $ui-white;
     border: 0.0625rem solid $ui-light-gray;
     border-radius: 0.375rem;
     box-shadow: 0 0 4px 1px transparentize($ui-light-gray, 0.5);
@@ -28,10 +28,10 @@
 
     button {
       background-color: $ui-white;
-      border: 0.0625rem solid $ui-light-gray;
+      border-bottom: 1px solid $ui-light-gray;
       font-size: 0.75rem;
       letter-spacing: 0.07rem;
-      padding: 0.5rem 1.5rem;
+      padding: 0.65rem 1.5rem;
       text-transform: uppercase;
       margin: 0;
       position: relative;
@@ -49,18 +49,7 @@
 
       // reverse the active state
       &.active {
-        color: $ui-white;
-        background-color: $ui-green;
-
-        svg.checkedIcon {
-          display: inline-block;
-          margin: 0;
-          position: absolute;
-          top: 50%;
-          transform: translateY(-55%);
-          right: 0.35rem;
-          vertical-align: text-bottom;
-        }
+        border-bottom: 3px solid $nyu-purple;
       }
     }
 
@@ -69,7 +58,6 @@
       background-color: $ui-white;
       color: $ui-dark-gray;
       display: block;
-      margin: 0.5rem 0;
       padding: 0;
       text-align: center;
     }
@@ -88,6 +76,9 @@
         button {
           width: 100%;
           text-overflow: ellipsis;
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
       }
 
@@ -113,6 +104,7 @@
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
         border-left: 0;
+        font-size: 0.9rem;
       }
 
       button.increase {
@@ -120,52 +112,26 @@
         border-bottom-left-radius: 0;
         border-left: 0;
         border-right: 0;
+        font-size: 1.1rem;
+        padding: 0.6rem 1.5rem;
       }
 
-      button.day-theme {
-        background-color: $ui-white;
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        border-left: 0;
-        border-right: 0;
-
-        &.active {
-          color: $ui-black;
-
-          svg.checkedIcon {
-            fill: $ui-black;
-          }
-        }
+      button span.color-preview {
+        width: 1rem;
+        height: 1rem;
+        display: inline-block;
+        border: 1px solid $ui-light-gray;
+        border-radius: 1rem;
+        background: $ui-white;
+        margin-right: 0.4rem;
       }
 
-      button.sepia-theme {
+      button.sepia-theme .color-preview {
         background-color: $sepia-bg;
-        border-radius: 0;
-
-        &.active {
-          color: $ui-black;
-
-          svg.checkedIcon {
-            fill: $ui-black;
-          }
-        }
       }
 
-      button.night-theme {
+      button.night-theme .color-preview {
         background-color: $ui-black;
-        color: $ui-white;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        border-left: 0;
-        border-right: 0;
-
-        &.active {
-          color: $ui-white;
-
-          svg.checkedIcon {
-            fill: $ui-white;
-          }
-        }
       }
 
       button.columns-paginated-view {
@@ -200,43 +166,25 @@
   .settings-view {
     > .settings-menu {
       background-color: $ui-black;
-      border: 0.0625rem solid $ui-dark-gray;
       box-shadow: 0 0 4px 1px transparentize($ui-light-gray, 0.5);
-  
+
       button {
         background-color: lighten($ui-black, 10%);
-        border: 0.0625rem solid darken($ui-light-gray, 30%);
-  
-        svg.checkedIcon {
-          color: $ui-black;
-          fill: $ui-black;
-        }
-  
+        border-bottom: 1px solid $ui-dark-gray;
+
         // reverse the active state
         &.active {
           color: $ui-white;
-          background-color: $ui-green;
+          border-bottom: 3px solid $nyu-purple;
         }
       }
-  
+
       > li {
-        border: 0;
         background-color: lighten($ui-black, 10%);
         color: $ui-white;
       }
-  
+
       .settings-options {
-        button.day-theme,
-        button.sepia-theme {
-          color: $ui-black;
-        }
-
-        button.night-theme {
-          &.active {
-            background-color: $ui-black;
-          }
-        }
-
         .icon {
           color: $ui-white;
           fill: $ui-white;

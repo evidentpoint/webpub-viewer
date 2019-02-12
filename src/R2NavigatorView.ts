@@ -18,6 +18,7 @@ import {
 } from 'r2-glue-js';
 
 import { ChapterInfo } from './SimpleNavigatorView';
+import { TextAlign } from './BookSettings';
 
 export enum RegionScope {
   Viewport = 'viewport',
@@ -201,6 +202,48 @@ export class R2NavigatorView {
         value: newFontSize * 100,
     }];
     this.rendCtx.rendition.updateViewSettings(fontSettings);
+  }
+
+  public updateLineHeight(newLineHeight: number): void {
+    const lineHeightSettings = [{
+      name: SettingName.LineHeight,
+      value: `${newLineHeight * 100}%`,
+    }];
+
+    const isAdvancedEnabled = this.rendCtx.rendition.viewSettings().getSetting(SettingName.AdvancedSettings);
+    if (!isAdvancedEnabled) {
+      lineHeightSettings.push({
+        name: SettingName.AdvancedSettings,
+        value: 'readium-advanced-on',
+      });
+    }
+
+
+    this.rendCtx.rendition.updateViewSettings(lineHeightSettings);
+  }
+
+  public updateTextAlign(newTextAlign: string): void {
+    let textAlign = '';
+    if (newTextAlign === TextAlign.Justify) {
+      textAlign = TextAlign.Justify;
+    } else if (newTextAlign === TextAlign.Left) {
+      textAlign = TextAlign.Left;
+    }
+
+    const textAlignSettings = [{
+      name: SettingName.TextAlign,
+      value: textAlign,
+    }];
+
+    const isAdvancedEnabled = this.rendCtx.rendition.viewSettings().getSetting(SettingName.AdvancedSettings);
+    if (!isAdvancedEnabled) {
+      textAlignSettings.push({
+        name: SettingName.AdvancedSettings,
+        value: 'readium-advanced-on',
+      });
+    }
+
+      this.rendCtx.rendition.updateViewSettings(textAlignSettings);
   }
 
   public updateTheme(theme: string): void {
@@ -467,6 +510,8 @@ export class R2NavigatorView {
     this.updateTheme = this.updateTheme.bind(this);
     this.getLeftHoverRegion = this.getLeftHoverRegion.bind(this);
     this.getRightHoverRegion = this.getRightHoverRegion.bind(this);
+    this.updateTextAlign = this.updateTextAlign.bind(this);
+    this.updateLineHeight = this.updateLineHeight.bind(this);
   }
 
   private updateSize(willRefreshLayout: boolean = true): void {
@@ -491,6 +536,8 @@ export class R2NavigatorView {
 
   private viewportContentChanged(): void {
     this.updateHoverRegionAll();
+    // TODO: Call this only when the element offsets change
+    // Currently it gets called too often, like when flipping pages
     this.pageTitleTocResolver.updatePageListMap();
   }
 

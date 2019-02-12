@@ -89,6 +89,16 @@ export class SimpleNavigatorView {
 
   }
 
+  // @ts-ignore
+  public updateTextAlign(newTextAlign: string): void {
+
+  }
+
+  // @ts-ignore
+  public updateLineHeight(newLineHeight: number): void {
+
+  }
+
   public nextScreen(): void {
   }
 

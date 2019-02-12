@@ -259,6 +259,9 @@ export default class IFrameNavigator implements Navigator {
     private setInitialViewSettings(settings: BookSettings): void {
         this.navView.updateTheme(settings.getSelectedTheme().name);
         this.navView.updateFontSize(settings.getSelectedFontSize());
+        this.navView.updateFont(settings.getSelectedFont().name);
+        this.navView.updateLineHeight(settings.getSelectedLineHeight());
+        this.navView.updateTextAlign(settings.getSelectedTextAlign());
 
         this.navigatorPositionChanged();
         this.navView.addLocationChangedListener(async () => {
@@ -327,6 +330,9 @@ export default class IFrameNavigator implements Navigator {
         this.settings.onFontChange(this.navView.updateFont);
         this.settings.onFontSizeChange(this.navView.updateFontSize);
         this.settings.onThemeChange(this.navView.updateTheme);
+        this.settings.onLineHeightChange(this.navView.updateLineHeight);
+        this.settings.onTextAlignChange(this.navView.updateTextAlign);
+
     }
 
     protected constructor(
@@ -419,7 +425,9 @@ export default class IFrameNavigator implements Navigator {
             if (this.scroller) {
                 this.scroller.bookElement = this.iframe;
             }
-            this.settings.renderControls(this.settingsView);
+            this.settings.renderControls(this.settingsView, {
+                snapToElement: 'controls-toolbar',
+            });
 
             this.shareBookLocation = new ShareBookLocation({
                 appendToElement: 'share-btn-container',

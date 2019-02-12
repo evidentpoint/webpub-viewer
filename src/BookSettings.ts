@@ -3,7 +3,6 @@ import BookTheme from "./BookTheme";
 import BookFont from "./BookFont";
 import * as HTMLUtilities from "./HTMLUtilities";
 import Store from "./Store";
-import * as IconLib from "./IconLib";
 
 const template = (sections: string) => `
     <ul class="settings-menu" role="menu">
@@ -27,6 +26,16 @@ const offlineTemplate = `
     </li>
 `;
 
+interface SnapOptions {
+    snapToElement?: string,
+}
+
+export enum TextAlign {
+    Publisher = 'publisher',
+    Left = 'left',
+    Justify = 'justify',
+}
+
 export interface BookSettingsConfig {
     /** Store to save the user's selections in. */
     store: Store,
@@ -45,6 +54,12 @@ export interface BookSettingsConfig {
 
     /** Array of BookViews. */
     bookViews: BookView[];
+
+    /** Array of line height sizes */
+    lineHeights: number[],
+
+    /** Array of text alignment options */
+    textAlignments: string[],
 }
 
 export default class BookSettings {
@@ -57,11 +72,17 @@ export default class BookSettings {
     private themeButtons: { [key: string]: HTMLButtonElement };
     private readonly bookViews: BookView[];
     private viewButtons: { [key: string]: HTMLButtonElement };
+    private readonly lineHeights: number[];
+    private lineHeightButtons: { [key: string]: HTMLButtonElement };
+    private readonly textAlignments: string[];
+    private textAlignmentButtons: { [key: string]: HTMLButtonElement };
 
     private offlineStatusElement: HTMLElement;
 
     private fontChangeCallback: (newFont: string) => void = () => {};
     private fontSizeChangeCallback: (newFontSize: number) => void = () => {};
+    private lineHeightChangeCallback: (newFontSize: number) => void = () => {};
+    private textAlignChangeCallback: (newFontSize: string) => void = () => {};
     private themeChangeCallback: (theme: string) => void = () => {};
     private viewChangeCallback: () => void = () => {};
 
@@ -69,24 +90,32 @@ export default class BookSettings {
     private selectedFontSize: number;
     private selectedTheme: BookTheme;
     private selectedView: BookView;
+    private selectedLineHeight: number;
+    private selectedTextAlign: string;
 
     private static readonly SELECTED_FONT_KEY = "settings-selected-font";
     private static readonly SELECTED_FONT_SIZE_KEY = "settings-selected-font-size";
     private static readonly SELECTED_THEME_KEY = "settings-selected-theme";
     private static readonly SELECTED_VIEW_KEY = "settings-selected-view";
+    private static readonly SELECTED_ALIGN_KEY = "settings-selected-align";
+    private static readonly SELECTED_LINE_HEIGHT_KEY = "settings-selected-line-height";
 
     public static async create(config: BookSettingsConfig) {
-        const settings = new this(config.store, config.bookFonts, config.fontSizes, config.bookThemes, config.bookViews);
+        const settings = new this(config.store, config.bookFonts, config.fontSizes, config.bookThemes, config.bookViews,
+            config.lineHeights, config.textAlignments);
         await settings.initializeSelections(config.defaultFontSize ? config.defaultFontSize : undefined);
         return settings;
     }
 
-    protected constructor(store: Store, bookFonts: BookFont[], fontSizes: number[], bookThemes: BookTheme[], bookViews: BookView[]) {
+    protected constructor(store: Store, bookFonts: BookFont[], fontSizes: number[], bookThemes: BookTheme[], bookViews: BookView[]
+        , lineHeights: number[], textAlignments: string[]) {
         this.store = store;
         this.bookFonts = bookFonts;
         this.fontSizes = fontSizes;
         this.bookThemes = bookThemes;
         this.bookViews = bookViews;
+        this.lineHeights = lineHeights;
+        this.textAlignments = textAlignments;
     }
 
     private async initializeSelections(defaultFontSize?: number): Promise<void> {
@@ -104,9 +133,35 @@ export default class BookSettings {
             this.selectedFont = selectedFont;
         }
 
+        if (this.textAlignments.length >= 1) {
+            let selectedAlign = this.textAlignments[0];
+            const selectedAlignName = await this.store.get(BookSettings.SELECTED_ALIGN_KEY);
+            if (selectedAlignName) {
+                for (const align of this.textAlignments) {
+                    if (align === selectedAlignName) {
+                        selectedAlign = align;
+                        break;
+                    }
+                }
+            }
+            this.selectedTextAlign = selectedAlign;
+        }
+
+        if (this.lineHeights.length >= 1) {
+            let selectedLineHeight = await this.store.get(BookSettings.SELECTED_LINE_HEIGHT_KEY);
+            if (typeof(selectedLineHeight) === 'string') {
+                selectedLineHeight = Number.parseFloat(selectedLineHeight);
+            }
+            const middle = Math.floor(this.lineHeights.length / 2);
+            this.selectedLineHeight = selectedLineHeight || this.lineHeights[middle];
+         }
+
         if (this.fontSizes.length >= 1) {
             // First, check if the user has previously set a font size.
-            let selectedFontSize = <number> await this.store.get(BookSettings.SELECTED_FONT_SIZE_KEY);
+            let selectedFontSize = await this.store.get(BookSettings.SELECTED_FONT_SIZE_KEY);
+            if (typeof(selectedFontSize) === 'string') {
+                selectedFontSize = Number.parseFloat(selectedFontSize);
+            }
             let selectedFontSizeIsAvailable = (selectedFontSize && this.fontSizes.indexOf(selectedFontSize) !== -1);
             // If not, or the user selected a size that's no longer an option, is there a default font size?
             if ((!selectedFontSize || !selectedFontSizeIsAvailable) && defaultFontSize) {
@@ -150,37 +205,74 @@ export default class BookSettings {
         }
     }
 
-    public renderControls(element: HTMLElement): void {
+    public renderControls(element: HTMLElement, snapOptions: SnapOptions): void {
         const sections = [];
+
+        if (this.fontSizes.length > 1) {
+            const fontSizeOptions = optionTemplate("font-setting", "decrease", "A-", "menuitem", "", "decrease-font")
+                + optionTemplate("font-setting", "increase", "A+", "menuitem", "", "increase-font");
+            sections.push(sectionTemplate(fontSizeOptions));
+        }
+
+        if (this.lineHeights.length > 1) {
+            const lineHeightOptions = optionTemplate("line-height-setting", "decreaseLineHeight", "-Line Height", "menuitem", "", "decrease-line-height")
+                + optionTemplate("line-height-setting", "increaseLineHeight", "+Line Height", "menuitem", "", "increase-line-height");
+            sections.push(sectionTemplate(lineHeightOptions));
+        }
+
+        if (this.textAlignments.length > 1) {
+            const textAlignmentOptions = this.textAlignments.map(textAlignment =>
+                optionTemplate("reading-style", "text-alignment", textAlignment, "menuitem", "", "text-alignment-" + textAlignment)
+            );
+            sections.push(sectionTemplate(textAlignmentOptions.join("")));
+        }
 
         if (this.bookFonts.length > 1) {
             const fontOptions = this.bookFonts.map(bookFont =>
-                optionTemplate("reading-style", bookFont.name, bookFont.label, "menuitem", IconLib.icons.checkDupe, bookFont.label)
+                optionTemplate("reading-style", bookFont.name, bookFont.label, "menuitem", "", bookFont.label)
             );
             sections.push(sectionTemplate(fontOptions.join("")));
         }
 
-        if (this.fontSizes.length > 1) {
-            const fontSizeOptions = optionTemplate("font-setting", "decrease", "A-", "menuitem", "", "decrease-font") + optionTemplate("font-setting", "increase", "A+", "menuitem", "", "increase-font");
-            sections.push(sectionTemplate(fontSizeOptions));
-        }
-
         if (this.bookThemes.length > 1) {
-            const themeOptions = this.bookThemes.map(bookTheme =>
-                optionTemplate("reading-theme", bookTheme.name, bookTheme.label, "menuitem", IconLib.icons.checkDupe, bookTheme.label)
-            );
+            const themeOptions = this.bookThemes.map( (bookTheme) => {
+                const colorPreview = `<span class="color-preview"></span> ${bookTheme.label}`;
+                return optionTemplate("reading-theme", bookTheme.name, colorPreview, "menuitem", "", bookTheme.label)
+            });
             sections.push(sectionTemplate(themeOptions.join("")));
         }
 
         if (this.bookViews.length > 1) {
             const viewOptions = this.bookViews.map(bookView =>
-                optionTemplate("reading-style", bookView.name, bookView.label, "menuitem", IconLib.icons.checkDupe, bookView.label)
+                optionTemplate("reading-style", bookView.name, bookView.label, "menuitem", "", bookView.label)
             );
             sections.push(sectionTemplate(viewOptions.join("")));
         }
         sections.push(offlineTemplate);
 
         element.innerHTML = template(sections.join(""));
+
+        const snapToElement = document.getElementById(snapOptions.snapToElement || '');
+        if (snapToElement) {
+            const snapRect = snapToElement.getBoundingClientRect();
+            element.style.setProperty('top', `${snapRect.top + snapRect.height}px`);
+        }
+
+        this.lineHeightButtons = {};
+        if (this.lineHeights.length > 1) {
+            for (const lineHeightName of ['decreaseLineHeight', 'increaseLineHeight']) {
+                this.lineHeightButtons[lineHeightName] = HTMLUtilities.findRequiredElement(element, "button[class=" + lineHeightName + "]") as HTMLButtonElement;
+            }
+            this.updateLineHeightButtons();
+        }
+
+        this.textAlignmentButtons = {};
+        if (this.textAlignments.length > 1) {
+            for (const align of this.textAlignments) {
+                this.textAlignmentButtons[align] = HTMLUtilities.findRequiredElement(element, "button[id=text-alignment-" + align + "]") as HTMLButtonElement;
+            }
+            this.updateTextAlignButtons();
+        }
 
         this.fontButtons = {};
         if (this.bookFonts.length > 1) {
@@ -229,6 +321,14 @@ export default class BookSettings {
         this.fontSizeChangeCallback = callback;
     }
 
+    public onLineHeightChange(callback: (newLineHeight: number) => void) {
+        this.lineHeightChangeCallback = callback;
+    }
+
+    public onTextAlignChange(callback: (newTextAlign: string) => void) {
+        this.textAlignChangeCallback = callback;
+    }
+
     public onThemeChange(callback: (theme: string) => void) {
         this.themeChangeCallback = callback;
     }
@@ -248,6 +348,50 @@ export default class BookSettings {
                     this.updateFontButtons();
                     this.storeSelectedFont(font);
                     this.fontChangeCallback(font.name);
+                    event.preventDefault();
+                });
+            }
+        }
+
+        for (const align of this.textAlignments) {
+            const button = this.textAlignmentButtons[align];
+            if (button) {
+                button.addEventListener("click", (event: MouseEvent) => {
+                    this.selectedTextAlign = align;
+                    this.updateTextAlignButtons();
+                    this.storeSelectedTextAlign(align);
+                    this.textAlignChangeCallback(align);
+                    event.preventDefault();
+                });
+            }
+        }
+
+        if (this.lineHeights.length > 1) {
+            const setNewLineHeight = (newLineHeight: number) => {
+                this.selectedLineHeight = newLineHeight;
+                this.lineHeightChangeCallback(newLineHeight);
+                this.updateLineHeightButtons();
+                this.storeSelectedLineHeight(newLineHeight);
+            };
+            const decrease = this.lineHeightButtons["decreaseLineHeight"];
+            if (decrease) {
+                decrease.addEventListener("click", (event: MouseEvent) => {
+                    const lineHeightIndex = this.lineHeights.indexOf(this.selectedLineHeight);
+                    if (lineHeightIndex > 0) {
+                        const newLineHeight = this.lineHeights[lineHeightIndex - 1];
+                        setNewLineHeight(newLineHeight);
+                    }
+                    event.preventDefault();
+                });
+            }
+            const increase = this.lineHeightButtons["increaseLineHeight"];
+            if (increase) {
+                increase.addEventListener("click", (event: MouseEvent) => {
+                    const lineHeightIndex = this.lineHeights.indexOf(this.selectedLineHeight);
+                    if (lineHeightIndex < this.lineHeights.length - 1) {
+                        const newLineHeight = this.lineHeights[lineHeightIndex + 1];
+                        setNewLineHeight(newLineHeight);
+                    }
                     event.preventDefault();
                 });
             }
@@ -323,6 +467,34 @@ export default class BookSettings {
         }
     }
 
+    private updateTextAlignButtons(): void {
+        for (const align of this.textAlignments) {
+            if (align === this.selectedTextAlign) {
+                this.textAlignmentButtons[align].className = align + " active";
+                this.textAlignmentButtons[align].setAttribute("aria-label", align + " text-align enabled");
+            } else {
+                this.textAlignmentButtons[align].className = align;
+                this.textAlignmentButtons[align].setAttribute("aria-label", align + " text-align disabled");
+            }
+        }
+    }
+
+    private updateLineHeightButtons(): void {
+        const index = this.lineHeights.indexOf(this.selectedLineHeight);
+
+        if (index === 0) {
+            this.lineHeightButtons["decreaseLineHeight"].className = "decreaseLineHeight disabled";
+        } else {
+            this.lineHeightButtons["decreaseLineHeight"].className = "decreaseLineHeight";
+        }
+
+        if (index === this.fontSizes.length - 1) {
+            this.lineHeightButtons["increaseLineHeight"].className = "increaseLineHeight disabled";
+        } else {
+            this.lineHeightButtons["increaseLineHeight"].className = "increaseLineHeight";
+        }
+    }
+
     private updateFontSizeButtons(): void {
         const currentFontSizeIndex = this.fontSizes.indexOf(this.selectedFontSize);
 
@@ -379,6 +551,14 @@ export default class BookSettings {
         return this.selectedView;
     }
 
+    public getSelectedLineHeight(): number {
+        return this.selectedLineHeight;
+    }
+
+    public getSelectedTextAlign(): string {
+        return this.selectedTextAlign;
+    }
+
     public getOfflineStatusElement(): HTMLElement {
         return this.offlineStatusElement;
     }
@@ -397,5 +577,13 @@ export default class BookSettings {
 
     private async storeSelectedView(view: BookView): Promise<void> {
         return this.store.set(BookSettings.SELECTED_VIEW_KEY, view.name);
+    }
+
+    private async storeSelectedTextAlign( align: string ): Promise<void> {
+        return this.store.set(BookSettings.SELECTED_ALIGN_KEY, align);
+    }
+
+    private async storeSelectedLineHeight( lineHeight: number ): Promise<void> {
+        return this.store.set(BookSettings.SELECTED_LINE_HEIGHT_KEY, lineHeight);
     }
 };
