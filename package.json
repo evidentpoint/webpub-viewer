@@ -24,8 +24,9 @@
     "embedded": "node \"./examples/embedded/embedded-server.js\"",
     "clean": "rimraf node_modules lib dist",
     "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'",
-    "build:streamed": "npm run prepublish && npm run copy:streamed",
-    "copy:all": "npm run copy:r2-navigator && npm run copy:readium-cfi",
+    "build:streamed": "npm run prepublish && npm run copy:all",
+    "copy:all": "npm run copy:r2-navigator && npm run copy:r2-glue-js && npm run copy:streamed",
+    "copy:r2-glue-js": "cp ./node_modules/r2-glue-js/dist/ReadiumGlue.js examples/streamed/readers/reader-JBKS/r2-glue-js.js",
     "copy:r2-navigator": "cp ./node_modules/@readium/navigator-web/dist/readium-navigator-web.umd.js examples/streamed/readers/reader-JBKS/@readium/navigator-web.js",
     "copy:streamed": "cpx 'viewer/*.{html,css,js}' examples/streamed/readers/reader-JBKS"
   },
