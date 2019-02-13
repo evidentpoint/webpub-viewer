@@ -77,7 +77,7 @@ export class PageBreakMarkers {
 
     private updateMarkerPosition(pageBreak: PageBreakData, marker: HTMLDivElement, container: HTMLDivElement): void {
         const isVertical = this.navView.isVerticalLayout();
-        let offset = pageBreak.offset;
+        let offset = pageBreak.spineItemOffset;
         if (!offset || !isVertical) {
             offset = 0;
         }
