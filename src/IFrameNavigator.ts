@@ -521,7 +521,10 @@ export default class IFrameNavigator implements Navigator {
         this.settings.onViewChange(this.updateBookView.bind(this));
 
         this.iframeRoot.addEventListener('scroll', () => {
-            this.pageBreakMarkers.updatePageBreaks();
+            // update the page breaks after the scroll has completed
+            setTimeout(() => {
+                this.pageBreakMarkers.updatePageBreaks();
+            }, 0);
         });
     }
 

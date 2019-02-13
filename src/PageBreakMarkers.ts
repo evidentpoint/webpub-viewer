@@ -76,8 +76,12 @@ export class PageBreakMarkers {
     }
 
     private updateMarkerPosition(pageBreak: PageBreakData, marker: HTMLDivElement, container: HTMLDivElement): void {
-        // We just need the top position of the viewport to correctly calculate the marker position
-        let posY = pageBreak.rect.top;
+        const isVertical = this.navView.isVerticalLayout();
+        let offset = pageBreak.offset;
+        if (!offset || !isVertical) {
+            offset = 0;
+        }
+        let posY = pageBreak.rect.top - offset;
         const markerRect = marker.getBoundingClientRect();
 
         if (container) {
