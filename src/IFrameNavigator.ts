@@ -704,36 +704,27 @@ export default class IFrameNavigator implements Navigator {
 
             listElement.appendChild(listItemElement);
             lastLink = linkElement;
+
+            linkElement.addEventListener("click", async (event:Event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if(event.target && (event.target as HTMLElement).tagName.toLowerCase() === "a") {
+                    let linkElement = event.target as HTMLAnchorElement;
+
+                    // Set focus back to the contents toggle button so screen readers
+                    // don't get stuck on a hidden link.
+                    this.contentsControl.focus();
+
+                    this.navView.goToHrefLocation(linkElement.href);
+                    this.hideTOC();
+                }
+            })
         }
 
         // Trap keyboard focus inside the TOC while it's open.
         if (lastLink) {
             this.setupModalFocusTrap(this.tocView, this.contentsControl, lastLink);
         }
-
-        listElement.addEventListener("click", async (event:Event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            if(event.target && (event.target as HTMLElement).tagName.toLowerCase() === "a") {
-                let linkElement = event.target as HTMLAnchorElement;
-
-                if (linkElement.className.indexOf("active") !== -1) {
-                    // This TOC item is already loaded. Hide the TOC
-                    // but don't navigate.
-                    this.hideTOC();
-                } else {
-                    // Set focus back to the contents toggle button so screen readers
-                    // don't get stuck on a hidden link.
-                    this.contentsControl.focus();
-                    // this.navigate({
-                    //     resource: linkElement.href,
-                    //     position: 0
-                    // });
-                    this.navView.goToHrefLocation(linkElement.href);
-                    this.hideTOC();
-                }
-            }
-        });
 
         parentElement.appendChild(listElement);
     }

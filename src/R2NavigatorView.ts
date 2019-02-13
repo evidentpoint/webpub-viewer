@@ -270,11 +270,19 @@ export class R2NavigatorView {
     this.rendCtx.navigator.previousScreen();
   }
 
-  public async goToHrefLocation(href: string, cfi: string = ''): Promise<void> {
+  public async goToHrefLocation(fullHref: string, cfi?: string): Promise<void> {
     const pub = this.rendCtx.rendition.getPublication();
+    const splitHref = fullHref.split('#');
+    const href = splitHref[0];
+    const eleId = splitHref.length >= 2 ? splitHref[1] : '';
     const relHref = pub.getHrefRelativeToManifest(href);
-    const loc = new Location(cfi, relHref, true);
-    await this.rendCtx.navigator.gotoLocation(loc);
+
+    if (cfi) {
+      const loc = new Location(cfi, relHref, true);
+      await this.rendCtx.navigator.gotoLocation(loc);
+    } else {
+      await this.rendCtx.navigator.gotoAnchorLocation(relHref, eleId);
+    }
   }
 
   public destroy(): void {
