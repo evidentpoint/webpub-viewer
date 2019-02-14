@@ -148,22 +148,6 @@ a {
       height: 100%;
     }
 
-    .settings-popover {
-      background: $ui-white;
-      border: 1px solid #DADADA;
-      border-radius: 0.375rem;
-      min-width: 240px;
-      position: absolute;
-      padding: 0.2rem 0 0 0;
-      margin: 0;
-      box-shadow: 0 0 4px 1px transparentize($ui-light-gray, 0.5);
-
-      textarea {
-        margin: 0.3rem;
-        resize: none;
-      }
-    }
-
     &.top {
       background-color: $ui-white;
       border-bottom: 0.0625rem solid $ui-light-gray;
