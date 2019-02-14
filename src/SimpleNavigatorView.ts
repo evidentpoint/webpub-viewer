@@ -67,12 +67,12 @@ export class SimpleNavigatorView {
   }
 
   // Returns the total page number, of the spine item that's at the beginning of the viewport
-  public async getTotalPageCountOfStartSpine(): Promise<number> {
-    return 0;
+  public getLastPageTitle(): string {
+    return '';
   }
 
-  public async getCurrentPageNumberOfStartSpine(): Promise<number> {
-    return 0;
+  public async getStartEndPageTitles(): Promise<string> {
+    return '';
   }
 
   // @ts-ignore

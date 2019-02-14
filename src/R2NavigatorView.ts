@@ -148,21 +148,50 @@ export class R2NavigatorView {
     return chapterInfo || firstChapterInfo;
   }
 
-  // Returns the total page number, of the spine item that's at the beginning of the viewport
-  public async getTotalPageCountOfStartSpine(): Promise<number> {
-    const startPos = await this.rendCtx.rendition.viewport.ensureLoaded().then(() => {
-      return this.rendCtx.rendition.viewport.getStartPosition();
-    });
+  // Returns the total number of pagelist items
+  public getLastPageTitle(): string {
+    const pub = this.rendCtx.rendition.getPublication();
+    if (pub.pageList) {
+      const length = pub.pageList.length;
+      return pub.pageList[length-1].title;
+    }
 
-    return startPos && startPos.spineItemPageCount || 0;
+    return '';
   }
 
-  public async getCurrentPageNumberOfStartSpine(): Promise<number> {
-    const startPos = await this.rendCtx.rendition.viewport.ensureLoaded().then(() => {
-      return this.rendCtx.rendition.viewport.getStartPosition();
-    });
+  public async getStartEndPageTitles(): Promise<string> {
+    const pageBreaks = await this.pageTitleTocResolver.getVisiblePageBreaks();
+    if (!pageBreaks.length) {
+      return '';
+    }
 
-    return startPos && (startPos.pageIndex + 1) || 0;
+    let startTitle = '';
+    let endTitle = '';
+    let firstPageBreak = pageBreaks[0];
+    // If the first page break is on the left and it's not at the very top,
+    // then check if a page break came before it
+    if (firstPageBreak.rect.top > 40) {
+      const prev = this.pageTitleTocResolver.getPreviousPageBreakInSpineItem(firstPageBreak);
+      // If only one page break was returned, check if this previous page break
+      // counts as a second
+      if (prev !== firstPageBreak && pageBreaks.length === 1) {
+        endTitle = firstPageBreak.link.title;
+      }
+      firstPageBreak = prev;
+    }
+    startTitle = firstPageBreak.link.title;
+
+    if (pageBreaks.length > 1) {
+      const lastPageBreak = pageBreaks[pageBreaks.length-1];
+      endTitle = lastPageBreak.link.title;
+    }
+
+    let title = startTitle;
+    if (startTitle !== endTitle && endTitle) {
+      title += `-${endTitle}`
+    }
+
+    return title;
   }
 
   public async getVisiblePageBreaks(): Promise<PageBreakData[]> {

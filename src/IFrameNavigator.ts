@@ -1290,13 +1290,16 @@ export default class IFrameNavigator implements Navigator {
     }
 
     private async updatePositionInfo() {
+        let val = "";
         if (!this.navView.isVerticalLayout()) {
-            const currentPage = await this.navView.getCurrentPageNumberOfStartSpine();
-            const pageCount = await this.navView.getTotalPageCountOfStartSpine();
-            this.chapterPosition.innerHTML = "Page " + currentPage + " of " + pageCount;
-        } else {
-            this.chapterPosition.innerHTML = "";
+            const currentPage = await this.navView.getStartEndPageTitles();
+            const pageCount = await this.navView.getLastPageTitle();
+            if (currentPage) {
+                val = "Page " + currentPage + " of " + pageCount;
+            }
         }
+
+        this.chapterPosition.innerHTML = val;
     }
 
     private handlePreviousChapterClick(event: MouseEvent): void {

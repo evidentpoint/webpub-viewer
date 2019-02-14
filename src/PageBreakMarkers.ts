@@ -155,11 +155,6 @@ export class PageBreakMarkers {
             };
         });
 
-        // Sort the array by the y axis
-        markerDataArr.sort((val1: MarkerData, val2: MarkerData) => {
-            return val1.rect.top - val2.rect.top;
-        })
-
         const markerGroups = this.findOverlappedMarkers(markerDataArr);
         if (markerGroups.length === 0) {
             return;
