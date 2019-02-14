@@ -483,7 +483,7 @@ export default class IFrameNavigator implements Navigator {
 
         this.settingsControl.addEventListener("click", this.handleSettingsClick.bind(this));
 
-        this.settingsView.addEventListener("click", this.handleToggleLinksClick.bind(this));
+        this.settingsView.addEventListener("click", this.hidePopovers.bind(this));
 
         this.tryAgainButton.addEventListener("click", this.tryAgain.bind(this));
 
