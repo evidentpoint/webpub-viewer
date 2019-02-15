@@ -73,6 +73,10 @@
         width: auto;
         flex: 1 1 auto;
 
+        &.line-height-setting svg {
+          fill: $ui-dark-gray;
+        }
+
         button {
           width: 100%;
           text-overflow: ellipsis;
@@ -184,7 +188,6 @@
     color: $ui-white;
   }
 
-
   .settings-view {
     > .settings-menu {
       background-color: $ui-black;
@@ -207,6 +210,10 @@
       }
 
       .settings-options {
+        li.line-height-setting svg {
+          fill: $ui-white;
+        }
+
         .icon {
           color: $ui-white;
           fill: $ui-white;
