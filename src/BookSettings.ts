@@ -3,6 +3,7 @@ import BookTheme from "./BookTheme";
 import BookFont from "./BookFont";
 import * as HTMLUtilities from "./HTMLUtilities";
 import Store from "./Store";
+import * as IconLib from "./IconLib";
 
 const template = (sections: string) => `
     <ul class="settings-menu" role="menu">
@@ -215,8 +216,8 @@ export default class BookSettings {
         }
 
         if (this.lineHeights.length > 1) {
-            const lineHeightOptions = optionTemplate("line-height-setting", "decreaseLineHeight", "-Line Height", "menuitem", "", "decrease-line-height")
-                + optionTemplate("line-height-setting", "increaseLineHeight", "+Line Height", "menuitem", "", "increase-line-height");
+            const lineHeightOptions = optionTemplate("line-height-setting", "decreaseLineHeight", IconLib.icons.decreaseLineHeight, "menuitem", "", "decrease-line-height")
+                + optionTemplate("line-height-setting", "increaseLineHeight", IconLib.icons.increaseLineHeight, "menuitem", "", "increase-line-height");
             sections.push(sectionTemplate(lineHeightOptions));
         }
 
