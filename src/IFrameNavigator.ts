@@ -307,10 +307,12 @@ export default class IFrameNavigator implements Navigator {
         }
 
         const shouldScroll = this.settings.getSelectedView() === this.scroller;
+        const columnLayout = this.settings.getSelectedColumnLayout();
         this.navView = new R2NavigatorView({
             viewAsVertical: shouldScroll,
             enableScroll: shouldScroll,
             viewport: this.iframeRoot,
+            columnLayout: columnLayout,
         });
         this.pageBreakMarkers.setNavView(this.navView);
 
@@ -332,7 +334,6 @@ export default class IFrameNavigator implements Navigator {
         this.settings.onThemeChange(this.navView.updateTheme);
         this.settings.onLineHeightChange(this.navView.updateLineHeight);
         this.settings.onTextAlignChange(this.navView.updateTextAlign);
-
     }
 
     protected constructor(
@@ -519,6 +520,7 @@ export default class IFrameNavigator implements Navigator {
         }
 
         this.settings.onViewChange(this.updateBookView.bind(this));
+        this.settings.onColumnSettingChange(this.updateBookView.bind(this));
 
         this.iframeRoot.addEventListener('scroll', () => {
             // update the page breaks after the scroll has completed

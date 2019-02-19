@@ -9,7 +9,7 @@ import SepiaTheme from "./SepiaTheme";
 import NightTheme from "./NightTheme";
 import ColumnsPaginatedBookView from "./ColumnsPaginatedBookView";
 import ScrollingBookView from "./ScrollingBookView";
-import BookSettings from "./BookSettings";
+import BookSettings, { ColumnSettings } from "./BookSettings";
 import LocalAnnotator from "./LocalAnnotator";
 
 const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNavigator> => {
@@ -23,6 +23,7 @@ const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNaviga
     const fontSizes = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 ];
     const lineHeights = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0];
     const textAlignments = ["publisher", "left", "justify"];
+    const columnOptions = [ColumnSettings.Auto, ColumnSettings.OneColumn, ColumnSettings.TwoColumn];
     const day = new DayTheme();
     const sepia = new SepiaTheme();
     const night = new NightTheme();
@@ -37,7 +38,8 @@ const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNaviga
         textAlignments: textAlignments,
         defaultFontSize: 1,
         bookThemes: [day, sepia, night],
-        bookViews: [paginator, scroller]
+        bookViews: [paginator, scroller],
+        columnOptions: columnOptions,
     });
     return await IFrameNavigator.create({
         element,

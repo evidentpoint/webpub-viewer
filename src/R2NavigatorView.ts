@@ -18,7 +18,7 @@ import {
 } from 'r2-glue-js';
 
 import { ChapterInfo } from './SimpleNavigatorView';
-import { TextAlign } from './BookSettings';
+import { TextAlign, ColumnSettings } from './BookSettings';
 
 export enum RegionScope {
   Viewport = 'viewport',
@@ -28,6 +28,7 @@ export enum RegionScope {
 interface settingsProps {
   viewAsVertical: boolean;
   enableScroll: boolean;
+  columnLayout: ColumnSettings;
   viewport?: HTMLElement;
 };
 
@@ -45,6 +46,7 @@ export class R2NavigatorView {
 
   private viewAsVertical: boolean = false;
   private enableScroll: boolean = false;
+  private columnLayout: ColumnSettings = ColumnSettings.TwoColumn;
   private regionHandlers: RegionHandling[] = [];
   private glueToRegionUpdaterMap: Map<GlueHandler, Function[]> = new Map();
   private shouldCheckWindowHref: boolean = false;
@@ -65,6 +67,7 @@ export class R2NavigatorView {
   public constructor(settings: settingsProps) {
     this.viewAsVertical = settings != undefined ? settings.viewAsVertical : this.viewAsVertical;
     this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
+    this.columnLayout = settings != undefined ? settings.columnLayout : this.columnLayout;
     if (!settings.viewport) {
       console.log('No viewport was set in R2NavigatorView');
       return;
@@ -318,9 +321,9 @@ export class R2NavigatorView {
     if (this.resizer) {
       this.resizer.stopListenResize();
     }
-    const el = document.getElementById('layout-view-root');
-    if (el) {
-      el.remove();
+    while (this.viewportRoot.hasChildNodes()) {
+      const child = this.viewportRoot.lastChild!;
+      this.viewportRoot.removeChild(child);
     }
   }
 
@@ -340,9 +343,15 @@ export class R2NavigatorView {
     });
 
     this.updateSize(false);
+    let spreadMode = SpreadMode.FitViewportDoubleSpread;
+    if (this.columnLayout === ColumnSettings.OneColumn) {
+      spreadMode = SpreadMode.FitViewportSingleSpread;
+    } else if (this.columnLayout === ColumnSettings.Auto) {
+      spreadMode = SpreadMode.FitViewportAuto;
+    }
 
     rendition.setPageLayout({
-        spreadMode: SpreadMode.FitViewportDoubleSpread,
+        spreadMode: spreadMode,
         pageWidth: 0,
         pageHeight: 0,
     });

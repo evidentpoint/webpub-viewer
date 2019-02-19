@@ -37,6 +37,12 @@ export enum TextAlign {
     Justify = 'justify',
 }
 
+export enum ColumnSettings {
+    Auto = 'auto',
+    OneColumn = '1-column',
+    TwoColumn = '2-column',
+}
+
 export interface BookSettingsConfig {
     /** Store to save the user's selections in. */
     store: Store,
@@ -61,6 +67,9 @@ export interface BookSettingsConfig {
 
     /** Array of text alignment options */
     textAlignments: string[],
+
+    /** Array of column settings */
+    columnOptions: string[],
 }
 
 export default class BookSettings {
@@ -77,6 +86,8 @@ export default class BookSettings {
     private lineHeightButtons: { [key: string]: HTMLButtonElement };
     private readonly textAlignments: string[];
     private textAlignmentButtons: { [key: string]: HTMLButtonElement };
+    private readonly columnLayouts: string[];
+    private columnLayoutButtons: { [key: string]: HTMLButtonElement };
 
     private offlineStatusElement: HTMLElement;
 
@@ -85,7 +96,8 @@ export default class BookSettings {
     private lineHeightChangeCallback: (newFontSize: number) => void = () => {};
     private textAlignChangeCallback: (newFontSize: string) => void = () => {};
     private themeChangeCallback: (theme: string) => void = () => {};
-    private viewChangeCallback: () => void = () => {};
+    private viewChangeCallback: Function = () => {};
+    private columnLayoutChangeCallback: Function = () => {};
 
     private selectedFont: BookFont;
     private selectedFontSize: number;
@@ -93,6 +105,7 @@ export default class BookSettings {
     private selectedView: BookView;
     private selectedLineHeight: number;
     private selectedTextAlign: string;
+    private selectedColumnLayout: ColumnSettings;
 
     private static readonly SELECTED_FONT_KEY = "settings-selected-font";
     private static readonly SELECTED_FONT_SIZE_KEY = "settings-selected-font-size";
@@ -100,16 +113,17 @@ export default class BookSettings {
     private static readonly SELECTED_VIEW_KEY = "settings-selected-view";
     private static readonly SELECTED_ALIGN_KEY = "settings-selected-align";
     private static readonly SELECTED_LINE_HEIGHT_KEY = "settings-selected-line-height";
+    private static readonly SELECTED_COLUMN_LAYOUT = "settings-column-layout";
 
     public static async create(config: BookSettingsConfig) {
         const settings = new this(config.store, config.bookFonts, config.fontSizes, config.bookThemes, config.bookViews,
-            config.lineHeights, config.textAlignments);
+            config.lineHeights, config.textAlignments, config.columnOptions);
         await settings.initializeSelections(config.defaultFontSize ? config.defaultFontSize : undefined);
         return settings;
     }
 
     protected constructor(store: Store, bookFonts: BookFont[], fontSizes: number[], bookThemes: BookTheme[], bookViews: BookView[]
-        , lineHeights: number[], textAlignments: string[]) {
+        , lineHeights: number[], textAlignments: string[], columnSettings: string[]) {
         this.store = store;
         this.bookFonts = bookFonts;
         this.fontSizes = fontSizes;
@@ -117,6 +131,7 @@ export default class BookSettings {
         this.bookViews = bookViews;
         this.lineHeights = lineHeights;
         this.textAlignments = textAlignments;
+        this.columnLayouts = columnSettings;
     }
 
     private async initializeSelections(defaultFontSize?: number): Promise<void> {
@@ -191,6 +206,10 @@ export default class BookSettings {
             this.selectedTheme = selectedTheme;
         }
 
+        if (this.columnLayouts.length >= 1) {
+            this.selectedColumnLayout = <ColumnSettings> await this.store.get(BookSettings.SELECTED_COLUMN_LAYOUT) || ColumnSettings.TwoColumn;
+        }
+
         if (this.bookViews.length >= 1) {
             let selectedView = this.bookViews[0];
             const selectedViewName = await this.store.get(BookSettings.SELECTED_VIEW_KEY);
@@ -241,6 +260,13 @@ export default class BookSettings {
                 return optionTemplate("reading-theme", bookTheme.name, colorPreview, "menuitem", "", bookTheme.label)
             });
             sections.push(sectionTemplate(themeOptions.join("")));
+        }
+
+        if (this.columnLayouts.length > 1) {
+            const columnOptions = this.columnLayouts.map((column) => {
+                return optionTemplate("column-layout", column + "-button", column.split('-').join(' '), "menuitem", "", column);
+            });
+            sections.push(sectionTemplate(columnOptions.join("")));
         }
 
         if (this.bookViews.length > 1) {
@@ -296,6 +322,13 @@ export default class BookSettings {
             }
             this.updateThemeButtons();
         }
+        this.columnLayoutButtons = {};
+        if (this.columnLayouts.length > 1) {
+            for (const column of this.columnLayouts) {
+                this.columnLayoutButtons[column] = HTMLUtilities.findRequiredElement(element, "button[class=" + `"${column}-button"` + "]") as HTMLButtonElement;
+            }
+            this.updateColumnLayoutButtons();
+        }
         this.viewButtons = {};
         if (this.bookViews.length > 1) {
             for (const bookView of this.bookViews) {
@@ -336,6 +369,10 @@ export default class BookSettings {
 
     public onViewChange(callback: () => void) {
         this.viewChangeCallback = callback;
+    }
+
+    public onColumnSettingChange(callback: () => void) {
+        this.columnLayoutChangeCallback = callback;
     }
 
     private setupEvents(): void {
@@ -439,6 +476,27 @@ export default class BookSettings {
             }
         }
 
+        for (const column of this.columnLayouts) {
+            const button = this.columnLayoutButtons[column];
+            if (button) {
+                button.addEventListener("click", () => {
+                    if (column === ColumnSettings.TwoColumn && this.selectedView.name === 'scrolling-book-view') {
+                        const view = this.bookViews.find((bv) => {
+                            return bv.name === 'columns-paginated-view';
+                        });
+                        if (view) {
+                            this.selectedView = view;
+                            this.storeSelectedView(view);
+                            this.updateViewButtons();
+                        }
+
+                    }
+
+                    this.setColumnLayout(<ColumnSettings> column);
+                });
+            }
+        }
+
         for (const view of this.bookViews) {
             const button = this.viewButtons[view.name];
             if (button) {
@@ -448,10 +506,34 @@ export default class BookSettings {
                     view.start(position);
                     this.selectedView = view;
                     this.updateViewButtons();
+
+                    if (view.name === 'scrolling-book-view' && this.selectedColumnLayout === ColumnSettings.TwoColumn) {
+                        this.setColumnLayout(ColumnSettings.Auto);
+                    }
+
                     this.storeSelectedView(view);
                     this.viewChangeCallback();
                     event.preventDefault();
                 });
+            }
+        }
+    }
+
+    private setColumnLayout(column: ColumnSettings) {
+        this.storeSelectedColumnLayout(column);
+        this.selectedColumnLayout = column;
+        this.updateColumnLayoutButtons();
+        this.columnLayoutChangeCallback(column);
+    }
+
+    private updateColumnLayoutButtons() {
+        for (const column of this.columnLayouts) {
+            if (column === this.selectedColumnLayout) {
+                this.columnLayoutButtons[column].classList.add('active');
+                this.columnLayoutButtons[column].setAttribute('aria-label', column.split('-').join(' ') + ' enabled');
+            } else {
+                this.columnLayoutButtons[column].classList.remove('active');
+                this.columnLayoutButtons[column].setAttribute('aria-label', column.split('-').join(' ') + ' disabled');
             }
         }
     }
@@ -564,6 +646,10 @@ export default class BookSettings {
         return this.offlineStatusElement;
     }
 
+    public getSelectedColumnLayout(): ColumnSettings {
+        return this.selectedColumnLayout;
+    }
+
     private async storeSelectedFont(font: BookFont): Promise<void> {
         return this.store.set(BookSettings.SELECTED_FONT_KEY, font.name);
     }
@@ -586,5 +672,9 @@ export default class BookSettings {
 
     private async storeSelectedLineHeight( lineHeight: number ): Promise<void> {
         return this.store.set(BookSettings.SELECTED_LINE_HEIGHT_KEY, lineHeight);
+    }
+
+    private async storeSelectedColumnLayout( columnSettings: ColumnSettings ): Promise<void> {
+        return this.store.set(BookSettings.SELECTED_COLUMN_LAYOUT, columnSettings);
     }
 };
