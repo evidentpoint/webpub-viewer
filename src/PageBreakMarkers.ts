@@ -84,6 +84,7 @@ export class PageBreakMarkers {
         let posY = pageBreak.rect.top - offset;
         const markerRect = marker.getBoundingClientRect();
 
+        posY = posY + pageBreak.rect.height / 2 - markerRect.height / 2;
         if (container) {
             let newRect = new DOMRect(markerRect.left, posY, markerRect.width, markerRect.height);
             newRect = this.constrainRectToContainer(newRect, container);
