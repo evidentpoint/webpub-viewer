@@ -329,11 +329,23 @@ export default class IFrameNavigator implements Navigator {
 
         this.setInitialViewSettings(this.settings);
 
-        this.settings.onFontChange(this.navView.updateFont);
-        this.settings.onFontSizeChange(this.navView.updateFontSize);
+        this.settings.onFontChange((font: string) => {
+            this.navView.updateFont(font);
+            this.updatePageBreakMarkers();
+        });
+        this.settings.onFontSizeChange((fontSize: number) => {
+            this.navView.updateFontSize(fontSize);
+            this.updatePageBreakMarkers();
+        });
         this.settings.onThemeChange(this.navView.updateTheme);
-        this.settings.onLineHeightChange(this.navView.updateLineHeight);
-        this.settings.onTextAlignChange(this.navView.updateTextAlign);
+        this.settings.onLineHeightChange((lineHeight: number) => {
+            this.navView.updateLineHeight(lineHeight);
+            this.updatePageBreakMarkers();
+        });
+        this.settings.onTextAlignChange((align: string) => {
+            this.navView.updateTextAlign(align);
+            this.updatePageBreakMarkers();
+        });
     }
 
     protected constructor(
