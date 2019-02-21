@@ -191,7 +191,7 @@ export class R2NavigatorView {
 
     let title = startTitle;
     if (startTitle !== endTitle && endTitle) {
-      title += `-${endTitle}`
+      title += `&#8211;${endTitle}`
     }
 
     return title;
