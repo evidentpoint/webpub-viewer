@@ -74,6 +74,8 @@ const template = `
                 </div>
             </div>
             <div id="iframe-container"></div>
+            <div id="left-page-marker-container" class="page-marker-container left"></div>
+            <div id="right-page-marker-container" class="page-marker-container right"></div>
             <div id="right-control-container" class="control-container right">
                 <div id="next-page-btn" class="flip-page-container">
                     <button class="flip-page-btn next">
@@ -244,9 +246,25 @@ export default class IFrameNavigator implements Navigator {
 
         await navigator.start(config.element, config.manifestUrl);
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
-        const leftContainer = document.getElementById('left-control-container');
-        const rightContainer = document.getElementById('right-control-container');
-        navigator.pageBreakMarkers = new PageBreakMarkers(leftContainer, rightContainer, navigator.iframeRoot);
+
+        const leftContainer = document.getElementById('left-page-marker-container');
+        const rightContainer = document.getElementById('right-page-marker-container');
+        if (leftContainer && rightContainer) {
+            navigator.pageBreakMarkers = new PageBreakMarkers(<HTMLDivElement> leftContainer, <HTMLDivElement> rightContainer, navigator.iframeRoot);
+
+            // Make sure there's enough padding for the page marker containers to fit into, in the
+            // scenario where there's no extra gap between the page(s) and the control containers
+            const leftControl = document.getElementById('left-control-container');
+            if (leftControl) {
+                const leftRect = leftContainer.getBoundingClientRect();
+                leftControl.style.setProperty('padding-right', `${leftRect.width}px`);
+            }
+            const rightControl = document.getElementById('right-control-container');
+            if (rightControl) {
+                const rightRect = rightContainer.getBoundingClientRect();
+                rightControl.style.setProperty('padding-left', `${rightRect.width}px`);
+            }
+        }
 
         navigator.handleIFrameLoad();
         navigator.updateBookView();

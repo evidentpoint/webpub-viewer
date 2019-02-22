@@ -40,7 +40,7 @@ interface HoverSize {
 type GlueHandler = RegionHandling;
 
 export class R2NavigatorView {
-  private rendCtx: R2RenditionContext;
+  public rendCtx: R2RenditionContext;
   private viewportRoot: HTMLElement;
   private resizer?: ViewportResizer;
 
@@ -151,7 +151,6 @@ export class R2NavigatorView {
     return chapterInfo || firstChapterInfo;
   }
 
-  // Returns the total number of pagelist items
   public getLastPageTitle(): string {
     const pub = this.rendCtx.rendition.getPublication();
     if (pub.pageList) {

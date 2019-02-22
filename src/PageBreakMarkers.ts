@@ -10,27 +10,18 @@ interface MarkerData {
 export class PageBreakMarkers {
     private markerContainerLeft: HTMLDivElement;
     private markerContainerRight: HTMLDivElement;
-    private parentContainerLeft: HTMLElement | null;
-    private parentContainerRight: HTMLElement | null;
     private viewport: HTMLElement;
     private navView: R2NavigatorView | SimpleNavigatorView;
 
-    constructor(parentContainerLeft: HTMLElement | null, parentContainerRight: HTMLElement | null, viewport: HTMLElement) {
-        this.parentContainerLeft = parentContainerLeft;
-        this.parentContainerRight = parentContainerRight;
+    constructor(
+        parentContainerLeft: HTMLDivElement,
+        parentContainerRight: HTMLDivElement,
+        viewport: HTMLElement,
+    ) {
         this.viewport = viewport;
 
-        if (this.parentContainerLeft) {
-            this.markerContainerLeft = this.createMarkerContainer();
-            this.markerContainerLeft.classList.add('left');
-            this.parentContainerLeft.appendChild(this.markerContainerLeft);
-        }
-
-        if (this.parentContainerRight) {
-            this.markerContainerRight = this.createMarkerContainer();
-            this.markerContainerRight.classList.add('right');
-            this.parentContainerRight.prepend(this.markerContainerRight);
-        }
+        this.markerContainerLeft = parentContainerLeft;
+        this.markerContainerRight = parentContainerRight;
     }
 
     public setNavView(navView: R2NavigatorView | SimpleNavigatorView) {
@@ -38,8 +29,9 @@ export class PageBreakMarkers {
     }
 
     public async updatePageBreaks(): Promise<void> {
-        const pageBreaks = await this.navView.getVisiblePageBreaks();
+        this.updateContainerPositions();
 
+        const pageBreaks = await this.navView.getVisiblePageBreaks();
         if (!pageBreaks) {
             return;
         }
@@ -92,13 +84,6 @@ export class PageBreakMarkers {
         }
 
         marker.style.setProperty('top', `${posY}px`);
-    }
-
-    private createMarkerContainer(): HTMLDivElement {
-        const el = document.createElement('div');
-        el.setAttribute('class', 'page-marker-container');
-
-        return el;
     }
 
     private clearMarkerContainer(container: HTMLDivElement): void {
@@ -212,6 +197,23 @@ export class PageBreakMarkers {
         }
         if (markersRight.length > 1) {
             this.moveOverlappedMarkers(markersRight, this.markerContainerRight);
+        }
+    }
+
+    private updateContainerPositions() {
+        if (this.navView instanceof R2NavigatorView) {
+            const pageWidth = this.navView.rendCtx.rendition.getPageWidth();
+            const viewportWidth = this.navView.rendCtx.rendition.viewport.getViewportSize();
+            const numOfPages = this.navView.rendCtx.rendition.getNumOfPagesPerSpread();
+            const gap = (viewportWidth - (pageWidth * numOfPages)) / 2;
+            const leftRect = this.markerContainerLeft.getBoundingClientRect();
+
+            const viewportRect = this.viewport.getBoundingClientRect();
+            this.markerContainerLeft.style.setProperty('height', `${viewportRect.height}px`);
+            this.markerContainerLeft.style.setProperty('left', `${viewportRect.left + gap - leftRect.width}px`)
+
+            this.markerContainerRight.style.setProperty('height', `${viewportRect.height}px`);
+            this.markerContainerRight.style.setProperty('left', `${viewportRect.right - gap}px`);
         }
     }
 }
