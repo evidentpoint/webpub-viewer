@@ -14,7 +14,7 @@ import {
 } from '@readium/navigator-web';
 
 import {
-  RegionHandling, Region,
+  RegionHandling, Region, SelectionHandling, GenerateCFI
 } from 'r2-glue-js';
 
 import { ChapterInfo } from './SimpleNavigatorView';
@@ -37,7 +37,7 @@ interface HoverSize {
   height: number;
 }
 
-type GlueHandler = RegionHandling;
+type GlueHandler = RegionHandling | SelectionHandling | GenerateCFI;
 
 export class R2NavigatorView {
   public rendCtx: R2RenditionContext;
@@ -51,6 +51,7 @@ export class R2NavigatorView {
   private glueToRegionUpdaterMap: Map<GlueHandler, Function[]> = new Map();
   private shouldCheckWindowHref: boolean = false;
   private pageTitleTocResolver: PageTitleTocResolver;
+  private selectedShareHash: string = '';
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -97,11 +98,14 @@ export class R2NavigatorView {
       return '';
     }
 
-    let newHref = hrefWithoutHash + `#href=${loc.getHref()}`;
-    let cfi = loc.getLocation();
-    if (cfi) {
-      newHref += `&cfi=${cfi}`;
+    let hash = '';
+    if (this.selectedShareHash) {
+      hash = this.selectedShareHash;
+    } else {
+      hash = this.createShareLinkHash(loc.getHref(), loc.getLocation());
     }
+
+    let newHref = hrefWithoutHash + hash;
 
     return newHref;
   }
@@ -384,28 +388,55 @@ export class R2NavigatorView {
   }
 
   private iframeLoaded(iframe: HTMLIFrameElement): void {
+    if (!iframe.contentWindow) {
+      console.error("IFrame not loaded");
+      return;
+    }
+
     this.addRegionHandling(iframe);
+    this.addSelectionHandling(iframe);
   }
 
-  private addGlueHandler(glue: GlueHandler, iframe: HTMLIFrameElement): GlueHandler {
+  private createShareLinkHash(href: string, cfi?: string) {
+    let hash = `#href=${href}`;
+    if (cfi) {
+      hash += `&cfi=${cfi}`;
+    }
+
+    return hash;
+  }
+
+  private addGlueHandler(
+    glue: GlueHandler,
+    iframe: HTMLIFrameElement,
+    handlers?: GlueHandler[],
+    glueRemover?: Function,
+  ): GlueHandler {
     const win = iframe.contentWindow;
     if (!glue || !win) {
       return glue;
     }
-    this.regionHandlers.push(glue);
+    if (handlers) {
+      handlers.push(glue);
+    }
 
     // Destroy references on unload
     win.addEventListener('unload', () => {
-      this.destroyGlueHandler(glue);
+      this.destroyGlueHandler(glue, handlers, glueRemover);
     });
 
     return glue;
   }
 
-  private destroyGlueHandler(glue: GlueHandler) {
-    const index = this.regionHandlers.indexOf(glue);
-    this.regionHandlers.splice(index, 1);
-    this.glueToRegionUpdaterMap.delete(glue);
+  private destroyGlueHandler(glue: GlueHandler, handlers?: GlueHandler[], glueRemover?: Function) {
+    if (handlers) {
+      const index = handlers.indexOf(glue);
+      handlers.splice(index, 1);
+    }
+    // Optional for removing additional references
+    if (glueRemover) {
+      glueRemover(glue);
+    }
     glue.destroy();
   }
 
@@ -425,13 +456,33 @@ export class R2NavigatorView {
     }
   }
 
-  private addRegionHandling(iframe: HTMLIFrameElement): RegionHandling | null {
-    if (!iframe.contentWindow) {
-      console.error("IFrame not loaded");
-      return null;
-    }
+  private addSelectionHandling(iframe: HTMLIFrameElement): void {
+    const selectionHandling = new SelectionHandling(iframe.contentWindow!);
+    const cfiGenerator = new GenerateCFI(iframe.contentWindow!);
+    this.addGlueHandler(selectionHandling, iframe);
+    this.addGlueHandler(cfiGenerator, iframe);
+    const href = iframe.getAttribute('data-src');
 
-    const regionHandling: RegionHandling = this.addGlueHandler(new RegionHandling(iframe.contentWindow), iframe);
+    selectionHandling.addEventListener('body', async (selectionEvent: any) => {
+      const selection = selectionEvent[0];
+
+      if (selection.text.length !== 0 && href) {
+        cfiGenerator.fromRangeData(selection.rangeData, (cfiEvent: any) => {
+          const cfi = cfiEvent[0];
+          this.selectedShareHash = this.createShareLinkHash(href, cfi);
+        });
+      } else {
+        this.selectedShareHash = '';
+      }
+    });
+  }
+
+  private addRegionHandling(iframe: HTMLIFrameElement): void {
+    const regionHandling = new RegionHandling(iframe.contentWindow!);
+    const remover = (glue: GlueHandler) => {
+      this.glueToRegionUpdaterMap.delete(glue);
+    }
+    this.addGlueHandler(regionHandling, iframe, this.regionHandlers, remover);
 
     // Left Hover
     this.setupRegionListeners(regionHandling, this.getLeftHoverRegion, iframe);
@@ -440,8 +491,6 @@ export class R2NavigatorView {
     // Right Hover
     this.setupRegionListeners(regionHandling, this.getRightHoverRegion, iframe);
     this.onHoverRightCb(false);
-
-    return regionHandling;
   }
 
   private setupRegionListeners(regionHandling: RegionHandling, regionGetter: Function, iframe: HTMLIFrameElement): void {

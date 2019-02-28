@@ -284,7 +284,6 @@ export default class IFrameNavigator implements Navigator {
         this.navigatorPositionChanged();
         this.navView.addLocationChangedListener(async () => {
             this.navigatorPositionChanged();
-            this.updateShareLink();
             this.updatePageBreakMarkers();
             await this.updatePositionInfo();
         });
@@ -467,6 +466,7 @@ export default class IFrameNavigator implements Navigator {
                 centerTo: 'share-btn-container',
                 focusTrapCb: this.setupModalFocusTrap.bind(this),
                 onShowCb: () => {
+                    this.updateShareLink();
                     this.hidePopovers('share');
                 },
             });
