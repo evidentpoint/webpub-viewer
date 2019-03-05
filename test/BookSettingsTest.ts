@@ -120,7 +120,7 @@ describe("BookSettings", () => {
         settings = await BookSettings.create({
             store,
             bookFonts: [font1, font2, font3],
-            fontSizes: [12, 14, 16],
+            fontSizes: [0.6, 0.7, 0.8],
             bookThemes: [theme1, theme2, theme3],
             bookViews: [view1, view2],
             lineHeights: [],
@@ -150,7 +150,7 @@ describe("BookSettings", () => {
         });
 
         it("obtains the selected font size from the store", async () => {
-            await store.set("settings-selected-font-size", "18px");
+            await store.set("settings-selected-font-size", "0.6");
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
@@ -161,11 +161,11 @@ describe("BookSettings", () => {
                 textAlignments: [],
                 columnOptions: []
             });
-            expect(settings.getSelectedFontSize()).to.equal("18px");
+            expect(settings.getSelectedFontSize()).to.equal(0.6);
         });
 
         it("sets the selected font size to the default if the selected font size in the store isn't one of the options", async () => {
-            await store.set("settings-selected-font-size", "12345px");
+            await store.set("settings-selected-font-size", "0.12345");
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
@@ -177,7 +177,7 @@ describe("BookSettings", () => {
                 textAlignments: [],
                 columnOptions: []
             });
-            expect(settings.getSelectedFontSize()).to.equal("18px");
+            expect(settings.getSelectedFontSize()).to.equal(0.9);
         });
 
         it("sets the selected font size to the default if there's no selected font size in the store", async () => {
@@ -192,7 +192,7 @@ describe("BookSettings", () => {
                 textAlignments: [],
                 columnOptions: []
             });
-            expect(settings.getSelectedFontSize()).to.equal("14px");
+            expect(settings.getSelectedFontSize()).to.equal(0.7);
         });
 
         it("sets the selected font size to the middle font size if the default isn't one of the options", async () => {
@@ -200,18 +200,18 @@ describe("BookSettings", () => {
                 store,
                 bookFonts: [font1, font2, font3],
                 fontSizes: [0.7, 0.8],
-                defaultFontSize: 12345,
+                defaultFontSize: 0.12345,
                 bookThemes: [theme1, theme2, theme3],
                 bookViews: [view1, view2],
                 lineHeights: [],
                 textAlignments: [],
                 columnOptions: []
             });
-            expect(settings.getSelectedFontSize()).to.equal("16px");
+            expect(settings.getSelectedFontSize()).to.equal(0.8);
         });
 
         it("sets the selected font size to the middle font size (rounded up) if there's no default and no selected font size in the store", async () => {
-            expect(settings.getSelectedFontSize()).to.equal("14px");
+            expect(settings.getSelectedFontSize()).to.equal(0.7);
 
             settings = await BookSettings.create({
                 store,
@@ -223,7 +223,7 @@ describe("BookSettings", () => {
                 textAlignments: [],
                 columnOptions: []
             });
-            expect(settings.getSelectedFontSize()).to.equal("14px");
+            expect(settings.getSelectedFontSize()).to.equal(0.7);
 
             settings = await BookSettings.create({
                 store,
@@ -235,7 +235,7 @@ describe("BookSettings", () => {
                 textAlignments: [],
                 columnOptions: []
             });
-            expect(settings.getSelectedFontSize()).to.equal("14px");
+            expect(settings.getSelectedFontSize()).to.equal(0.7);
         });
 
         it("obtains the selected theme from the store", async () => {
@@ -508,13 +508,13 @@ describe("BookSettings", () => {
             const decreaseButton = element.querySelector("button[class=decrease]") as HTMLButtonElement;
             const increaseButton = element.querySelector("button[class=increase]") as HTMLButtonElement;
 
-            expect(settings.getSelectedFontSize()).to.equal("14px");
+            expect(settings.getSelectedFontSize()).to.equal(0.7);
 
             click(decreaseButton);
             await pause();
-            expect(settings.getSelectedFontSize()).to.equal("12px");
+            expect(settings.getSelectedFontSize()).to.equal(0.6);
             let storedFontSize = await store.get("settings-selected-font-size");
-            expect(storedFontSize).to.equal("12px");
+            expect(storedFontSize).to.equal(0.6);
 
             // The decrease button is now disabled because the size can't be decreased more.
             expect(decreaseButton.className).to.contain("disabled");
@@ -523,24 +523,24 @@ describe("BookSettings", () => {
             // Clicking decrease again does nothing.
             click(decreaseButton);
             await pause();
-            expect(settings.getSelectedFontSize()).to.equal("12px");
+            expect(settings.getSelectedFontSize()).to.equal(0.6);
             storedFontSize = await store.get("settings-selected-font-size");
-            expect(storedFontSize).to.equal("12px");
+            expect(storedFontSize).to.equal(0.6);
 
             click(increaseButton);
             await pause();
-            expect(settings.getSelectedFontSize()).to.equal("14px");
+            expect(settings.getSelectedFontSize()).to.equal(0.7);
             storedFontSize = await store.get("settings-selected-font-size");
-            expect(storedFontSize).to.equal("14px");
+            expect(storedFontSize).to.equal(0.7);
 
             expect(decreaseButton.className).not.to.contain("disabled");
             expect(increaseButton.className).not.to.contain("disabled");
 
             click(increaseButton);
             await pause();
-            expect(settings.getSelectedFontSize()).to.equal("16px");
+            expect(settings.getSelectedFontSize()).to.equal(0.8);
             storedFontSize = await store.get("settings-selected-font-size");
-            expect(storedFontSize).to.equal("16px");
+            expect(storedFontSize).to.equal(0.8);
 
 
             expect(decreaseButton.className).not.to.contain("disabled");
@@ -549,9 +549,9 @@ describe("BookSettings", () => {
             // Clicking increase again does nothing.
             click(increaseButton);
             await pause();
-            expect(settings.getSelectedFontSize()).to.equal("16px");
+            expect(settings.getSelectedFontSize()).to.equal(0.8);
             storedFontSize = await store.get("settings-selected-font-size");
-            expect(storedFontSize).to.equal("16px");
+            expect(storedFontSize).to.equal(0.8);
         });
 
         it("changes theme when a theme button is clicked", async () => {
