@@ -4,6 +4,7 @@
     "typeRoots": [
       "node_modules/@types"
     ],
+    "moduleResolution": "node",
     "declaration": true,
     "forceConsistentCasingInFileNames": true,
     "module": "umd",

@@ -225,7 +225,7 @@ export default class BookSettings {
         }
     }
 
-    public renderControls(element: HTMLElement, snapOptions: SnapOptions): void {
+    public renderControls(element: HTMLElement, snapOptions: SnapOptions = {}): void {
         const sections = [];
 
         if (this.fontSizes.length > 1) {

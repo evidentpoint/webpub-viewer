@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { stub } from "sinon";
 import * as jsdom from "jsdom";
+import "reflect-metadata";
 
 import IFrameNavigator from "../src/IFrameNavigator";
 import Store from "../src/Store";
@@ -215,13 +216,13 @@ describe("IFrameNavigator", () => {
         public renderControls(element: HTMLElement) {
             renderControls(element);
         }
-        public onFontChange(callback: () => void) {
+        public onFontChange(callback: (newFont: string) => void) {
             onFontChange(callback);
         }
-        public onFontSizeChange(callback: () => void) {
+        public onFontSizeChange(callback: (newFontSize: number) => void) {
             onFontSizeChange(callback);
         }
-        public onThemeChange(callback: () => void) {
+        public onThemeChange(callback: (theme: string) => void) {
             onThemeChange(callback);
         }
         public onViewChange(callback: () => void) {
@@ -337,9 +338,12 @@ describe("IFrameNavigator", () => {
         settings = await MockSettings.create({
             store,
             bookFonts: [publisher, serif, sans],
-            fontSizesInPixels: [14, 16],
+            fontSizes: [0.7, 0.8],
             bookThemes: [day, sepia, night],
-            bookViews: [paginator, scroller]
+            bookViews: [paginator, scroller],
+            lineHeights: [],
+            textAlignments: [],
+            columnOptions: []
         });
 
         setupEvents = stub();
@@ -360,10 +364,10 @@ describe("IFrameNavigator", () => {
                 ProcessExternalResources: ["iframe"]
             }
         } as any)).defaultView;
-        element = window.document.createElement("div");
+        element = window!.document.createElement("div");
 
         // The element must be in a document for iframe load events to work.
-        window.document.body.appendChild(element);
+        window!.document.body.appendChild(element);
         (document.documentElement as any).clientWidth = 1024;
         (navigator as IFrameNavigator) = await IFrameNavigator.create({
             element,

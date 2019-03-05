@@ -120,9 +120,12 @@ describe("BookSettings", () => {
         settings = await BookSettings.create({
             store,
             bookFonts: [font1, font2, font3],
-            fontSizesInPixels: [12, 14, 16],
+            fontSizes: [12, 14, 16],
             bookThemes: [theme1, theme2, theme3],
-            bookViews: [view1, view2]
+            bookViews: [view1, view2],
+            lineHeights: [],
+            textAlignments: [],
+            columnOptions: []
         });
     });
 
@@ -132,9 +135,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [],
+                fontSizes: [],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFont()).to.equal(font2);
         });
@@ -148,9 +154,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12, 14, 16, 18],
+                fontSizes: [0.6, 0.7, 0.8, 0.9],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFontSize()).to.equal("18px");
         });
@@ -160,10 +169,13 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12, 14, 16, 18],
-                defaultFontSizeInPixels: 18,
+                fontSizes: [0.6, 0.7, 0.8, 0.9],
+                defaultFontSize: 0.9,
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFontSize()).to.equal("18px");
         });
@@ -172,10 +184,13 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [14, 16],
-                defaultFontSizeInPixels: 14,
+                fontSizes: [0.7, 0.8],
+                defaultFontSize: 0.7,
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFontSize()).to.equal("14px");
         });
@@ -184,10 +199,13 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [14, 16],
-                defaultFontSizeInPixels: 12345,
+                fontSizes: [0.7, 0.8],
+                defaultFontSize: 12345,
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFontSize()).to.equal("16px");
         });
@@ -198,18 +216,24 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12, 14],
+                fontSizes: [0.6, 0.7],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFontSize()).to.equal("14px");
 
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [10, 12, 14, 16],
+                fontSizes: [0.4, 0.6, 0.7, 0.8],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedFontSize()).to.equal("14px");
         });
@@ -219,9 +243,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [],
+                fontSizes: [],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedTheme()).to.equal(theme3);
         });
@@ -235,10 +262,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [],
+                fontSizes: [],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
-
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             expect(settings.getSelectedView()).to.equal(view2);
         });
@@ -265,9 +294,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             font1Button = element.querySelector("button[class='font1 active']") as HTMLButtonElement;
@@ -278,9 +310,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             font1Button = element.querySelector("button[class='font1 active']") as HTMLButtonElement;
@@ -303,9 +338,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [theme1],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             theme1Button = element.querySelector("button[class='theme1 active']") as HTMLButtonElement;
@@ -316,9 +354,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [],
-                bookViews: [view1, view2]
+                bookViews: [view1, view2],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             theme1Button = element.querySelector("button[class='theme1 active']") as HTMLButtonElement;
@@ -341,9 +382,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1]
+                bookViews: [view1],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             view1Button = element.querySelector("button[class='view1 active']") as HTMLButtonElement;
@@ -354,9 +398,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: []
+                bookViews: [],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             view1Button = element.querySelector("button[class='view1 active']") as HTMLButtonElement;
@@ -424,9 +471,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [12],
+                fontSizes: [0.6],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1]
+                bookViews: [view1],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             decreaseButton = element.querySelector("button[class='decrease']") as HTMLButtonElement;
@@ -437,9 +487,12 @@ describe("BookSettings", () => {
             settings = await BookSettings.create({
                 store,
                 bookFonts: [font1, font2, font3],
-                fontSizesInPixels: [],
+                fontSizes: [],
                 bookThemes: [theme1, theme2, theme3],
-                bookViews: [view1]
+                bookViews: [view1],
+                lineHeights: [],
+                textAlignments: [],
+                columnOptions: []
             });
             settings.renderControls(element);
             decreaseButton = element.querySelector("button[class='decrease']") as HTMLButtonElement;
