@@ -25,15 +25,17 @@
     "clean": "rimraf node_modules lib dist",
     "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'",
     "build:streamed": "npm run prepublish && npm run copy:all",
-    "copy:all": "npm run copy:r2-navigator && npm run copy:r2-glue-js && npm run copy:streamed",
+    "copy:all": "npm run copy:readium-css && npm run copy:r2-navigator && npm run copy:r2-glue-js && npm run copy:streamed",
+    "copy:readium-css": "cp -r ./node_modules/readium-css/css/dist examples/streamed/readers/reader-JBKS/readium-css",
     "copy:r2-glue-js": "cp ./node_modules/r2-glue-js/dist/ReadiumGlue.js examples/streamed/readers/reader-JBKS/r2-glue-js.js",
-    "copy:r2-navigator": "cp ./node_modules/@readium/navigator-web/dist/readium-navigator-web.umd.js examples/streamed/readers/reader-JBKS/@readium/navigator-web.js",
+    "copy:r2-navigator": "mkdir -p examples/streamed/readers/reader-JBKS/@readium && cp ./node_modules/@readium/navigator-web/dist/readium-navigator-web.umd.js examples/streamed/readers/reader-JBKS/@readium/navigator-web.js",
     "copy:streamed": "cpx 'viewer/*.{html,css,js}' examples/streamed/readers/reader-JBKS"
   },
   "dependencies": {
     "@readium/navigator-web": "^1.0.0-alpha.1",
     "promise-polyfill": "^8.1.0",
     "r2-glue-js": "^0.0.0-alpha.1",
+    "readium-css": "readium/readium-css",
     "url-polyfill": "^1.1.3",
     "whatwg-fetch": "^3.0.0"
   },
