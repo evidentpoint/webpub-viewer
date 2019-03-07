@@ -54,6 +54,7 @@ export class R2NavigatorView {
   private pageTitleTocResolver: PageTitleTocResolver;
   private currentShareLinkCfi: string = '';
   private currentShareLinkHref: string = '';
+  private preventPageChange: boolean = false;
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -290,10 +291,18 @@ export class R2NavigatorView {
   }
 
   public nextScreen(): void {
+    if (this.preventPageChange) {
+      this.preventPageChange = false;
+      return;
+    }
     this.rendCtx.navigator.nextScreen();
   }
 
   public previousScreen(): void {
+    if (this.preventPageChange) {
+      this.preventPageChange = false;
+      return;
+    }
     this.rendCtx.navigator.previousScreen();
   }
 
@@ -509,6 +518,7 @@ export class R2NavigatorView {
       const selection = selectionEvent[0];
 
       if (selection.text.length !== 0 && href) {
+        this.preventPageChange = true;
         cfiGenerator.fromRangeData(selection.rangeData, (cfiEvent: any) => {
           const cfi = cfiEvent[0];
           this.currentShareLinkCfi = cfi;
