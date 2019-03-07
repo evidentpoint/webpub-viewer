@@ -10,7 +10,8 @@ interface ShareBookLocationOptions {
     snapToElementEdge: SnapEdge,
     centerTo: string,
     focusTrapCb: Function,
-    onShowCb: Function,
+    onShowCb?: Function,
+    onCloseCb?: Function,
 }
 
 export class ShareBookLocation {
@@ -22,7 +23,8 @@ export class ShareBookLocation {
     private shareModal: HTMLDivElement;
     private shareText: HTMLTextAreaElement;
     private onShowCb: Function;
-    private shareLink: string;
+    private onCloseCb: Function;
+    private shareLink: string = '';
 
     constructor(opts: ShareBookLocationOptions) {
         const container = document.getElementById(opts.appendToElement);
@@ -46,7 +48,8 @@ export class ShareBookLocation {
             return;
         }
         this.centerToElement = centerToElement;
-        this.onShowCb = opts.onShowCb;
+        this.onShowCb = opts.onShowCb ? opts.onShowCb : () => {};
+        this.onCloseCb = opts.onCloseCb ? opts.onCloseCb : () => {};
 
         this.initializeButton();
 
@@ -70,6 +73,7 @@ export class ShareBookLocation {
     }
 
     public hideModal(): void {
+        this.onCloseCb();
         this.shareBtn.setAttribute('aria-expanded', 'false');
         this.shareModal.style.setProperty('display', 'none');
         this.shareModal.classList.remove('active');

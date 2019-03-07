@@ -14,7 +14,7 @@ import {
 } from '@readium/navigator-web';
 
 import {
-  RegionHandling, Region, SelectionHandling, GenerateCFI
+  RegionHandling, Region, SelectionHandling, GenerateCFI, Highlighting, IHighlightDeletionOptions,
 } from 'r2-glue-js';
 
 import { ChapterInfo } from './SimpleNavigatorView';
@@ -37,7 +37,7 @@ interface HoverSize {
   height: number;
 }
 
-type GlueHandler = RegionHandling | SelectionHandling | GenerateCFI;
+type GlueHandler = RegionHandling | SelectionHandling | GenerateCFI | Highlighting;
 
 export class R2NavigatorView {
   public rendCtx: R2RenditionContext;
@@ -49,9 +49,11 @@ export class R2NavigatorView {
   private columnLayout: ColumnSettings = ColumnSettings.TwoColumn;
   private regionHandlers: RegionHandling[] = [];
   private glueToRegionUpdaterMap: Map<GlueHandler, Function[]> = new Map();
+  private hrefToHighlightingMap: Map<string, Highlighting> = new Map();
   private shouldCheckWindowHref: boolean = false;
   private pageTitleTocResolver: PageTitleTocResolver;
-  private selectedShareHash: string = '';
+  private currentShareLinkCfi: string = '';
+  private currentShareLinkHref: string = '';
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -92,18 +94,8 @@ export class R2NavigatorView {
     if (window.location.hash.length > 0) {
       hrefWithoutHash = window.location.href.split(window.location.hash)[0];
     }
-    const loc = await this.rendCtx.navigator.getCurrentLocationAsync();
-    if (!loc) {
-      console.error("No location was retrieved");
-      return '';
-    }
-
-    let hash = '';
-    if (this.selectedShareHash) {
-      hash = this.selectedShareHash;
-    } else {
-      hash = this.createShareLinkHash(loc.getHref(), loc.getLocation());
-    }
+    const {href, cfi} = await this.getShareLinkHrefAndCfi();
+    const hash = this.createShareLinkHash(href, cfi);
 
     let newHref = hrefWithoutHash + hash;
 
@@ -315,6 +307,15 @@ export class R2NavigatorView {
     if (cfi) {
       const loc = new Location(cfi, relHref, true);
       await this.rendCtx.navigator.gotoLocation(loc);
+
+      // Temporarily highlight cfi word / cfi range
+      this.highlightShareLocation(true, cfi);
+      setTimeout(() => {
+        this.highlightShareLocation(false, cfi, {
+          fadeOut: 1000,
+        });
+      }, 3000);
+
     } else {
       await this.rendCtx.navigator.gotoAnchorLocation(relHref, eleId);
     }
@@ -376,6 +377,26 @@ export class R2NavigatorView {
     });
   }
 
+  public async highlightShareLocation(
+    bool: boolean,
+    id: string = '',
+    options?: IHighlightDeletionOptions,
+  ): Promise<string> {
+    const {href, cfi} = await this.getShareLinkHrefAndCfi();
+    const highlighter = this.hrefToHighlightingMap.get(this.currentShareLinkHref || href);
+    if (!highlighter) {
+      console.log('Highlighting not found');
+      return '';
+    }
+
+    if (bool) {
+      highlighter.createHighlight(id || cfi);
+    } else {
+      highlighter.deleteHighlight(id || cfi, options);
+    }
+    return cfi;
+  }
+
   public async goToWindowLocation(): Promise<void> {
     const hash = window.location.hash;
     const arr = hash.split('&');
@@ -395,6 +416,27 @@ export class R2NavigatorView {
 
     this.addRegionHandling(iframe);
     this.addSelectionHandling(iframe);
+    this.addHighlightHandling(iframe);
+  }
+
+  private async getShareLinkHrefAndCfi(): Promise<{href: string, cfi: string}> {
+    const loc = await this.rendCtx.navigator.getCurrentLocationAsync();
+    if (!loc) {
+      console.error("No location was retrieved");
+      return {href: '', cfi: ''};
+    }
+
+    let href = '';
+    let cfi = '';
+    if (this.currentShareLinkCfi) {
+      href = this.currentShareLinkHref;
+      cfi = this.currentShareLinkCfi;
+    } else {
+      href = loc.getHref();
+      cfi = loc.getLocation();
+    }
+
+    return {href, cfi};
   }
 
   private createShareLinkHash(href: string, cfi?: string) {
@@ -469,12 +511,23 @@ export class R2NavigatorView {
       if (selection.text.length !== 0 && href) {
         cfiGenerator.fromRangeData(selection.rangeData, (cfiEvent: any) => {
           const cfi = cfiEvent[0];
-          this.selectedShareHash = this.createShareLinkHash(href, cfi);
+          this.currentShareLinkCfi = cfi;
+          this.currentShareLinkHref = href;
         });
       } else {
-        this.selectedShareHash = '';
+        this.currentShareLinkCfi = '';
       }
     });
+  }
+
+  private addHighlightHandling(iframe: HTMLIFrameElement): void {
+    const highlighting = new Highlighting(iframe.contentWindow!);
+    const href = iframe.getAttribute('data-src') || '';
+    this.addGlueHandler(highlighting, iframe, [], () => {
+      this.hrefToHighlightingMap.delete(href);
+    });
+
+    this.hrefToHighlightingMap.set(href, highlighting);
   }
 
   private addRegionHandling(iframe: HTMLIFrameElement): void {
@@ -606,6 +659,7 @@ export class R2NavigatorView {
     this.getRightHoverRegion = this.getRightHoverRegion.bind(this);
     this.updateTextAlign = this.updateTextAlign.bind(this);
     this.updateLineHeight = this.updateLineHeight.bind(this);
+    this.highlightShareLocation = this.highlightShareLocation.bind(this);
   }
 
   private updateSize(willRefreshLayout: boolean = true): void {

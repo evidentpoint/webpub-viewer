@@ -287,7 +287,6 @@ export default class IFrameNavigator implements Navigator {
             this.updatePageBreakMarkers();
             await this.updatePositionInfo();
         });
-        // this.updateShareLink();
 
         const size = {
             width: 200,
@@ -459,15 +458,22 @@ export default class IFrameNavigator implements Navigator {
                 snapToElement: 'controls-toolbar',
             });
 
+            let highlightId = '';
             this.shareBookLocation = new ShareBookLocation({
                 appendToElement: 'share-btn-container',
                 snapToElement: 'controls-toolbar',
                 snapToElementEdge: SnapEdge.BOTTOM,
                 centerTo: 'share-btn-container',
                 focusTrapCb: this.setupModalFocusTrap.bind(this),
-                onShowCb: () => {
+                onShowCb: async () => {
                     this.updateShareLink();
                     this.hidePopovers('share');
+                    highlightId = await this.navView.highlightShareLocation(true);
+                },
+                onCloseCb: () => {
+                    if (this.navView) {
+                        this.navView.highlightShareLocation(false, highlightId);
+                    }
                 },
             });
 

@@ -114,6 +114,11 @@ export class SimpleNavigatorView {
   }
 
   // @ts-ignore
+  public highlightShareLocation(bool: boolean, id?: string): string {
+    return '';
+  }
+
+  // @ts-ignore
   public async loadPublication(pubUrl: string, root: HTMLElement): Promise<void> {
     this.manifest = await Manifest.getManifest(this.manifestUrl, this.store);
     const startLink = this.manifest.getStartLink();
