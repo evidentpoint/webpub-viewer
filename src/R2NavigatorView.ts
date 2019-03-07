@@ -312,7 +312,7 @@ export class R2NavigatorView {
       this.highlightShareLocation(true, cfi);
       setTimeout(() => {
         this.highlightShareLocation(false, cfi, {
-          fadeOut: 1000,
+          fadeOut: 2000,
         });
       }, 3000);
 
