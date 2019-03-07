@@ -35,15 +35,31 @@ import { PageBreakMarkers } from "./PageBreakMarkers";
 
 // const epubReadingSystem = Object.freeze(epubReadingSystemObject);
 
-const upLinkTemplate = (href: string, label: string, ariaLabel: string) => `
-  <a rel="up" href='${href}' aria-label="${ariaLabel}">
-    <svg xmlns="http://www.w3.org/2000/svg" width="${IconLib.WIDTH_ATTR}" height="${IconLib.HEIGHT_ATTR}" viewBox="${IconLib.VIEWBOX_ATTR}" aria-labelledby="up-label" preserveAspectRatio="xMidYMid meet" role="img" class="icon">
-      <title id="up-label">${label}</title>
-      ${IconLib.icons.home}
-    </svg>
-    <span class="setting-text up">${label}</span>
-  </a>
-`;
+const svgUplink = (label: string) => {
+    return `
+    <svg xmlns="http://www.w3.org/2000/svg" width="${IconLib.WIDTH_ATTR}" height="${IconLib.HEIGHT_ATTR}"
+        viewBox="${IconLib.VIEWBOX_ATTR}" aria-labelledby="up-label"
+        preserveAspectRatio="xMidYMid meet" role="img" class="icon">
+        <title id="up-label">${label}</title>
+        ${IconLib.icons.home}
+    </svg>`
+}
+
+const imgUplink = (imageSrc: string, imageAlt: string = "") => {
+    return `
+    <img src=${imageSrc} height="${IconLib.HEIGHT_ATTR}" alt="${imageAlt}"/>
+    `
+}
+
+const upLinkTemplate = (href: string, label: string, ariaLabel: string, imageSrc?: string, imageAlt?: string) => {
+    const image = imageSrc ? imgUplink(imageSrc, imageAlt) : svgUplink(label);
+
+    return `
+    <a rel="up" href='${href}' aria-label="${ariaLabel}">
+        ${image}
+        <span class="setting-text up">${label}</span>
+    </a>
+`};
 
 const template = `
     <main style="overflow: hidden" tabindex=-1>
@@ -160,6 +176,8 @@ export interface UpLinkConfig {
     url?: URL;
     label?: string;
     ariaLabel?: string;
+    imageSrc?: string;
+    imageAlt?: string;
 }
 
 export interface IFrameNavigatorConfig {
@@ -787,7 +805,7 @@ export default class IFrameNavigator implements Navigator {
                 const upUrl = this.upLinkConfig.url;
                 const upLabel = this.upLinkConfig.label || "";
                 const upAriaLabel = this.upLinkConfig.ariaLabel || upLabel;
-                const upHTML = upLinkTemplate(upUrl.href, upLabel, upAriaLabel);
+                const upHTML = upLinkTemplate(upUrl.href, upLabel, upAriaLabel, this.upLinkConfig.imageSrc, this.upLinkConfig.imageAlt);
                 const upParent : HTMLLIElement = document.createElement("li");
                 upParent.classList.add("uplink-wrapper");
                 upParent.innerHTML = upHTML;
