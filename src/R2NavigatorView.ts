@@ -14,7 +14,13 @@ import {
 } from '@readium/navigator-web';
 
 import {
-  RegionHandling, Region, SelectionHandling, GenerateCFI, Highlighting, IHighlightDeletionOptions,
+  RegionHandling,
+  Region,
+  SelectionHandling,
+  GenerateCFI,
+  Highlighting,
+  IHighlightDeletionOptions,
+  KeyHandling,
 } from 'r2-glue-js';
 
 import { ChapterInfo } from './SimpleNavigatorView';
@@ -29,6 +35,8 @@ interface settingsProps {
   viewAsVertical: boolean;
   enableScroll: boolean;
   columnLayout: ColumnSettings;
+  keyboardCb: (key: string) => {};
+  keys: string[];
   viewport?: HTMLElement;
 };
 
@@ -37,7 +45,7 @@ interface HoverSize {
   height: number;
 }
 
-type GlueHandler = RegionHandling | SelectionHandling | GenerateCFI | Highlighting;
+type GlueHandler = RegionHandling | SelectionHandling | GenerateCFI | Highlighting | KeyHandling;
 
 export class R2NavigatorView {
   public rendCtx: R2RenditionContext;
@@ -55,6 +63,8 @@ export class R2NavigatorView {
   private currentShareLinkCfi: string = '';
   private currentShareLinkHref: string = '';
   private preventPageChange: boolean = false;
+  private keyboardCb: (key: string) => {};
+  private keys: string[];
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -76,6 +86,8 @@ export class R2NavigatorView {
       console.log('No viewport was set in R2NavigatorView');
       return;
     }
+    this.keyboardCb = settings.keyboardCb;
+    this.keys = settings.keys;
 
     this.bindOwnMethods();
     this.shouldCheckWindowHref = true;
@@ -426,6 +438,7 @@ export class R2NavigatorView {
     this.addRegionHandling(iframe);
     this.addSelectionHandling(iframe);
     this.addHighlightHandling(iframe);
+    this.addKeyboardHandling(iframe);
   }
 
   private async getShareLinkHrefAndCfi(): Promise<{href: string, cfi: string}> {
@@ -528,6 +541,17 @@ export class R2NavigatorView {
         this.currentShareLinkCfi = '';
       }
     });
+  }
+
+  private addKeyboardHandling(iframe: HTMLIFrameElement): void {
+      const keyHandling = new KeyHandling(iframe.contentWindow!);
+      this.addGlueHandler(keyHandling, iframe);
+
+      this.keys.forEach((key: string) => {
+        keyHandling.addKeyEventListener('body', 'keydown', key, () => {
+          this.keyboardCb(key);
+        });
+      });
   }
 
   private addHighlightHandling(iframe: HTMLIFrameElement): void {

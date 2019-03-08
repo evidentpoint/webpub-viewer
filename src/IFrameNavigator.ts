@@ -200,6 +200,24 @@ export interface IFrameNavigatorConfig {
     allowFullscreen?: boolean;
 }
 
+export enum SupportedKeys {
+    ArrowLeft = 'ArrowLeft',
+    ArrowRight = 'ArrowRight',
+    T = 't',
+    S = 's',
+    B = 'b',
+    F = 'f',
+}
+
+export enum Actions {
+    GoFullscreen,
+    NextPage,
+    PreviousPage,
+    OpenTOC,
+    OpenSettings,
+    OpenShare,
+}
+
 /** Class that shows webpub resources in an iframe, with navigation controls outside the iframe. */
 export default class IFrameNavigator implements Navigator {
     private manifestUrl: URL;
@@ -249,6 +267,7 @@ export default class IFrameNavigator implements Navigator {
     private navView: R2NavigatorView | SimpleNavigatorView;
     private shareBookLocation: ShareBookLocation;
     private pageBreakMarkers: PageBreakMarkers;
+    private keyToActionMap: {[keys: string]: Actions};
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -340,6 +359,12 @@ export default class IFrameNavigator implements Navigator {
             this.navView.destroy();
         }
 
+        const keys: string[] = [];
+        const keyStrings = Object.keys(this.keyToActionMap);
+        keyStrings.forEach((key: string) => {
+            keys.push(key);
+        });
+
         const shouldScroll = this.settings.getSelectedView() === this.scroller;
         const columnLayout = this.settings.getSelectedColumnLayout();
         this.navView = new R2NavigatorView({
@@ -347,6 +372,8 @@ export default class IFrameNavigator implements Navigator {
             enableScroll: shouldScroll,
             viewport: this.iframeRoot,
             columnLayout: columnLayout,
+            keyboardCb: this.handleKeyboardNavigation.bind(this),
+            keys: keys,
         });
         this.pageBreakMarkers.setNavView(this.navView);
 
@@ -472,6 +499,16 @@ export default class IFrameNavigator implements Navigator {
             if (this.scroller) {
                 this.scroller.bookElement = this.iframe;
             }
+
+            this.keyToActionMap = {
+                 [SupportedKeys.F]: Actions.GoFullscreen,
+                 [SupportedKeys.ArrowRight]: Actions.NextPage,
+                 [SupportedKeys.ArrowLeft]: Actions.PreviousPage,
+                 [SupportedKeys.T]: Actions.OpenTOC,
+                 [SupportedKeys.S]: Actions.OpenSettings,
+                 [SupportedKeys.B]: Actions.OpenShare,
+            }
+
             this.settings.renderControls(this.settingsView, {
                 snapToElement: 'controls-toolbar',
             });
@@ -554,7 +591,10 @@ export default class IFrameNavigator implements Navigator {
 
         this.settingsView.addEventListener("keydown", this.hideSettingsOnEscape.bind(this));
 
-        window.addEventListener("keydown", this.handleKeyboardNavigation.bind(this));
+        window.addEventListener("keydown", (event: KeyboardEvent) => {
+            const key = event.key;
+            this.handleKeyboardNavigation(key);
+        });
 
         const nextPageBtn = document.getElementById('next-page-btn');
         if (nextPageBtn) {
@@ -622,16 +662,28 @@ export default class IFrameNavigator implements Navigator {
         });
     }
 
-    private handleKeyboardNavigation(event: KeyboardEvent): void {
-        const LEFT_ARROW = 37;
-        const RIGHT_ARROW = 39;
-
-        if (event.keyCode === LEFT_ARROW) {
-            this.handlePreviousPageClick(event);
-        } else if (event.keyCode === RIGHT_ARROW) {
-            this.handleNextPageClick(event);
+    private handleKeyboardNavigation(key: string): void {
+        const action = this.keyToActionMap[key];
+        if (action || action === 0) {
+            this.handleAction(action);
         }
     };
+
+    private handleAction(action: Actions): void {
+        if (action === Actions.NextPage) {
+            this.handleNextPageClick();
+        } else if (action === Actions.PreviousPage) {
+            this.handlePreviousPageClick();
+        } else if (action === Actions.GoFullscreen) {
+            this.toggleFullscreen();
+        } else if (action === Actions.OpenSettings) {
+            this.togglePopover('settings');
+        } else if (action === Actions.OpenShare) {
+            this.shareBookLocation.toggleModal();
+        } else if (action === Actions.OpenTOC) {
+            this.togglePopover('toc');
+        }
+    }
 
     private updateBookView(): void {
         const doNothing = () => {};
@@ -651,8 +703,6 @@ export default class IFrameNavigator implements Navigator {
                 this.eventHandler.onRightHover = this.handleRightHover.bind(this);
                 this.eventHandler.onRemoveHover = this.handleRemoveHover.bind(this);
                 this.eventHandler.onInternalLink = this.handleInternalLink.bind(this);
-                this.eventHandler.onLeftArrow = this.handleKeyboardNavigation.bind(this);
-                this.eventHandler.onRightArrow = this.handleKeyboardNavigation.bind(this);
             }
             // if (this.isDisplayed(this.linksBottom)) {
             //     this.toggleDisplay(this.linksBottom);
@@ -1178,7 +1228,7 @@ export default class IFrameNavigator implements Navigator {
     }
 
     // @ts-ignore
-    private handlePreviousPageClick(event: MouseEvent | TouchEvent | KeyboardEvent): void {
+    private handlePreviousPageClick(event?: MouseEvent | TouchEvent | KeyboardEvent): void {
         // if (this.paginator) {
         //     if (this.paginator.onFirstPage()) {
         //         if (this.previousChapterLink.hasAttribute("href")) {
@@ -1201,7 +1251,7 @@ export default class IFrameNavigator implements Navigator {
     }
 
     // @ts-ignore
-    private handleNextPageClick(event: MouseEvent | TouchEvent | KeyboardEvent) {
+    private handleNextPageClick(event?: MouseEvent | TouchEvent | KeyboardEvent) {
         // if (this.paginator) {
         //     if (this.paginator.onLastPage()) {
         //         if (this.nextChapterLink.hasAttribute("href")) {
