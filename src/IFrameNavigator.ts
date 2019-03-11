@@ -283,6 +283,7 @@ export default class IFrameNavigator implements Navigator {
 
         await navigator.start(config.element, config.manifestUrl);
         navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
+        navigator.addTitlesToShortcutButtons();
 
         const leftContainer = document.getElementById('left-page-marker-container');
         const rightContainer = document.getElementById('right-page-marker-container');
@@ -581,8 +582,6 @@ export default class IFrameNavigator implements Navigator {
             if (this.scroller && (this.settings.getSelectedView() !== this.scroller)) {
                 this.scrollingSuggestion.style.display = "block";
             }
-
-            this.addTitlesToShortcutButtons();
 
             return await this.loadManifest();
         } catch (err) {
