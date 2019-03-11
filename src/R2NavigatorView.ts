@@ -171,31 +171,11 @@ export class R2NavigatorView {
   }
 
   public async getStartEndPageTitles(): Promise<string> {
-    const pageBreaks = await this.pageTitleTocResolver.getVisiblePageBreaks();
-    if (!pageBreaks.length) {
-      return '';
-    }
+    const startLoc = this.rendCtx.navigator.getScreenBegin();
+    const endLoc = this.rendCtx.navigator.getScreenEnd();
 
-    let startTitle = '';
-    let endTitle = '';
-    let firstPageBreak = pageBreaks[0];
-    // If the first page break is on the left and it's not at the very top,
-    // then check if a page break came before it
-    if (firstPageBreak.rect.top > 40) {
-      const prev = this.pageTitleTocResolver.getPreviousPageBreakInSpineItem(firstPageBreak);
-      // If only one page break was returned, check if this previous page break
-      // counts as a second
-      if (prev !== firstPageBreak && pageBreaks.length === 1) {
-        endTitle = firstPageBreak.link.title;
-      }
-      firstPageBreak = prev;
-    }
-    startTitle = firstPageBreak.link.title;
-
-    if (pageBreaks.length > 1) {
-      const lastPageBreak = pageBreaks[pageBreaks.length-1];
-      endTitle = lastPageBreak.link.title;
-    }
+    let startTitle = startLoc ? this.pageTitleTocResolver.getPageTitleFromLocation(startLoc) : '';
+    let endTitle = endLoc ? this.pageTitleTocResolver.getPageTitleFromLocation(endLoc) : '';
 
     let title = startTitle;
     if (startTitle !== endTitle && endTitle) {
