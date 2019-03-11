@@ -124,7 +124,7 @@ const template = `
       </a>
       <ul class="links top active">
         <li>
-          <button class="contents disabled" aria-labelledby="contents-label" aria-haspopup="true" aria-expanded="false">
+          <button id="toc-button" class="contents disabled" aria-labelledby="contents-label" aria-haspopup="true" aria-expanded="false">
             ${IconLib.icons.toc}
             ${IconLib.icons.closeDupe}
             <span class="setting-text contents" id="contents-label">Contents</span>
@@ -409,6 +409,40 @@ export default class IFrameNavigator implements Navigator {
         });
     }
 
+    private addTitlesToShortcutButtons() {
+        const keys = Object.keys(this.keyToActionMap);
+        for (let i=0; i < keys.length; i +=1 ) {
+            const key = keys[i];
+            const action = this.keyToActionMap[key];
+
+            let element;
+            let title = '';
+            if (action === Actions.GoFullscreen) {
+                element = document.getElementById('fullscreen-control');
+                title = 'Go To Fullscreen';
+            } else if (action === Actions.NextPage) {
+                element = document.getElementById('next-page-btn');
+                title = 'Next page';
+            } else if (action === Actions.OpenSettings) {
+                element = document.getElementById('settings-control');
+                title = 'Open settings';
+            } else if (action === Actions.OpenShare) {
+                element = document.getElementById('share-btn');
+                title = 'Share page';
+            } else if (action === Actions.OpenTOC) {
+                element = document.getElementById('toc-button');
+                title = 'Open Table of Contents';
+            } else if (action === Actions.PreviousPage) {
+                element = document.getElementById('prev-page-btn');
+                title = 'Previous page';
+            }
+
+            if (element) {
+                element.setAttribute('title', `${title} [${key}]`);
+            }
+        }
+    }
+
     protected constructor(
         store: Store,
         cacher: Cacher | null = null,
@@ -547,6 +581,8 @@ export default class IFrameNavigator implements Navigator {
             if (this.scroller && (this.settings.getSelectedView() !== this.scroller)) {
                 this.scrollingSuggestion.style.display = "block";
             }
+
+            this.addTitlesToShortcutButtons();
 
             return await this.loadManifest();
         } catch (err) {
