@@ -47,7 +47,7 @@ const svgUplink = (label: string) => {
 
 const imgUplink = (imageSrc: string, imageAlt: string = "") => {
     return `
-    <img src=${imageSrc} height="${IconLib.HEIGHT_ATTR}" alt="${imageAlt}"/>
+    <img src=${imageSrc} height="${35}px" alt="${imageAlt}"/>
     `
 }
 

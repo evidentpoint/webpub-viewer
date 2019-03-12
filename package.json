@@ -18,7 +18,7 @@
     "visual-test": "backstop test",
     "visual-test:init": "backstop reference",
     "visual-test:update": "backstop approve",
-    "examples": "rimraf examples/static/viewer examples/streamed/readers/reader-JBKS && cpx 'viewer/*.{html,css,js}' examples/static/viewer && cpx 'viewer/*.{html,css,js}' examples/streamed/readers/reader-JBKS && cpx 'viewer/*.{css,js}' examples/embedded/alice",
+    "examples": "rimraf examples/static/viewer examples/streamed/readers/reader-JBKS && cpx 'viewer/*.{html,css,js,png,svg}' examples/static/viewer && cpx 'viewer/*.{html,css,js,png,svg}' examples/streamed/readers/reader-JBKS && cpx 'viewer/*.{css,js,png,svg}' examples/embedded/alice",
     "static": "node \"./examples/static/static-server.js\"",
     "streamed": "node \"./examples/streamed/server/server-cli.inlinesourcemap.js\" ./examples/streamed/epubs/",
     "embedded": "node \"./examples/embedded/embedded-server.js\"",
