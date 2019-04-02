@@ -1,15 +1,20 @@
 dist: xenial
-branches:
-  only:
-  - master
-language: node_js
+addons:
+  chrome: stable
+  firefox: latest
 services:
   - docker
+env:
+  - MOZ_HEADLESS=1
+branches:
+  only:
+    - master
+language: node_js
 node_js: lts/*
 cache: npm
 install:
-- npm install
-- npm run examples
+  - npm install
+  - npm run examples
 jobs:
   include:
     - stage: test
@@ -17,4 +22,5 @@ jobs:
     - stage: visual-test
       script:
         - npm install -g backstopjs
+        - npm run static &
         - npm run visual-test
