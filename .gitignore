@@ -14,7 +14,8 @@ viewer/main.css
 
 examples/static/viewer/*
 
-backstop_data/bitmaps_reference
+# check-in reference for CI to use
+#backstop_data/bitmaps_reference
 backstop_data/bitmaps_test
 backstop_data/html_report
 backstop_data/ci_report
