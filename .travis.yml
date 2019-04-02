@@ -1,4 +1,20 @@
+dist: xenial
+branches:
+  only:
+  - master
 language: node_js
-
-node_js:
-  - "lts/carbon"
+services:
+  - docker
+node_js: lts/*
+cache: npm
+install:
+- npm install
+- npm run examples
+jobs:
+  include:
+    - stage: test
+      script: npm run test
+    - stage: visual-test
+      script:
+        - npm install -g backstopjs
+        - npm run visual-test
