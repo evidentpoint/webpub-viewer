@@ -60,6 +60,9 @@ export class ShareBookLocation {
     public setShareLink(shareLink: string) {
         this.shareLink = shareLink;
         this.shareText.value = this.shareLink;
+        this.shareText.focus();
+        const textLength = this.shareLink.length;
+        this.shareText.setSelectionRange(0, textLength);
     }
 
     public toggleModal(): void {
@@ -85,10 +88,6 @@ export class ShareBookLocation {
         this.shareModal.style.setProperty('display', '')
         this.shareModal.classList.add('active');
         this.repositionModal();
-        this.shareText.focus();
-
-        const textLength = this.shareLink.length;
-        this.shareText.setSelectionRange(0, textLength);
     }
 
     public isModalVisible(): boolean {
