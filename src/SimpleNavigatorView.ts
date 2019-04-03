@@ -57,6 +57,14 @@ export class SimpleNavigatorView {
   public addHoverRightListener(callback: Function, settings?: any) {
   }
 
+  // @ts-ignore
+  public onIFrameLoaded(cb: Function) {
+  }
+
+  // @ts-ignore
+  public onIFrameLoadStarted(cb: Function) {
+  }
+
   public async getChapterInfo(): Promise<ChapterInfo> {
     let chapterInfo: ChapterInfo = {
       title: '',

@@ -22,8 +22,8 @@ export class ShareBookLocation {
     private shareBtn: HTMLButtonElement;
     private shareModal: HTMLDivElement;
     private shareText: HTMLTextAreaElement;
-    private onShowCb: Function;
-    private onCloseCb: Function;
+    private onShowCb: Function = () => {};
+    private onCloseCb: Function = () => {};
     private shareLink: string = '';
 
     constructor(opts: ShareBookLocationOptions) {

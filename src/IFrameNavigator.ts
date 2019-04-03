@@ -77,7 +77,7 @@ const template = `
         <div id="top-control-bar" class="info top">
             <span class="book-title"></span>
         </div>
-        <div class="page-container">
+        <div class="page-container" id="page-container">
             <div id="left-control-container" class="control-container left">
                 <div id="prev-page-btn" class="flip-page-container">
                     <button class="flip-page-btn prev">
@@ -268,6 +268,7 @@ export default class IFrameNavigator implements Navigator {
     private shareBookLocation: ShareBookLocation;
     private pageBreakMarkers: PageBreakMarkers;
     private keyToActionMap: {[keys: string]: Actions};
+    private pageContainer: HTMLDivElement;
 
     public static async create(config: IFrameNavigatorConfig) {
         const navigator = new this(
@@ -282,22 +283,21 @@ export default class IFrameNavigator implements Navigator {
 
 
         await navigator.start(config.element, config.manifestUrl);
-        navigator.iframeRoot = document.getElementById('iframe-container') || document.createElement('div');
         navigator.addTitlesToShortcutButtons();
 
-        const leftContainer = document.getElementById('left-page-marker-container');
-        const rightContainer = document.getElementById('right-page-marker-container');
+        const leftContainer = HTMLUtilities.findRequiredElement(navigator.pageContainer, '#left-page-marker-container') as HTMLDivElement;
+        const rightContainer = HTMLUtilities.findRequiredElement(navigator.pageContainer, '#right-page-marker-container') as HTMLDivElement;
         if (leftContainer && rightContainer) {
             navigator.pageBreakMarkers = new PageBreakMarkers(<HTMLDivElement> leftContainer, <HTMLDivElement> rightContainer, navigator.iframeRoot);
 
             // Make sure there's enough padding for the page marker containers to fit into, in the
             // scenario where there's no extra gap between the page(s) and the control containers
-            const leftControl = document.getElementById('left-control-container');
+            const leftControl = HTMLUtilities.findRequiredElement(navigator.pageContainer, '#left-control-container') as HTMLDivElement;
             if (leftControl) {
                 const leftRect = leftContainer.getBoundingClientRect();
                 leftControl.style.setProperty('padding-right', `${leftRect.width}px`);
             }
-            const rightControl = document.getElementById('right-control-container');
+            const rightControl = HTMLUtilities.findRequiredElement(navigator.pageContainer, '#right-control-container') as HTMLDivElement;;
             if (rightControl) {
                 const rightRect = rightContainer.getBoundingClientRect();
                 rightControl.style.setProperty('padding-left', `${rightRect.width}px`);
@@ -385,12 +385,6 @@ export default class IFrameNavigator implements Navigator {
         //     store: this.store,
         // });
 
-
-        await this.navView.loadPublication(this.manifestUrl.href, this.iframeRoot);
-        // await this.navView.loadPublication('', this.iframeRoot);
-
-        this.setInitialViewSettings(this.settings);
-
         this.settings.onFontChange((font: string) => {
             this.navView.updateFont(font);
             this.updatePageBreakMarkers();
@@ -408,6 +402,12 @@ export default class IFrameNavigator implements Navigator {
             this.navView.updateTextAlign(align);
             this.updatePageBreakMarkers();
         });
+
+        await this.navView.loadPublication(this.manifestUrl.href, this.iframeRoot);
+        // await this.navView.loadPublication('', this.iframeRoot);
+
+        this.setInitialViewSettings(this.settings);
+
     }
 
     private addTitlesToShortcutButtons() {
@@ -419,22 +419,22 @@ export default class IFrameNavigator implements Navigator {
             let element;
             let title = '';
             if (action === Actions.GoFullscreen) {
-                element = document.getElementById('fullscreen-control');
+                element = HTMLUtilities.findElement(this.links, "#fullscreen-control") as HTMLButtonElement;
                 title = 'Go To Fullscreen';
             } else if (action === Actions.NextPage) {
-                element = document.getElementById('next-page-btn');
+                element = HTMLUtilities.findElement(this.pageContainer, '#next-page-btn') as HTMLDivElement;
                 title = 'Next page';
             } else if (action === Actions.OpenSettings) {
-                element = document.getElementById('settings-control');
+                element = HTMLUtilities.findElement(this.links, "#settings-control") as HTMLButtonElement;
                 title = 'Open settings';
             } else if (action === Actions.OpenShare) {
-                element = document.getElementById('share-btn');
+                element = HTMLUtilities.findElement(this.links, "#share-btn") as HTMLButtonElement;;
                 title = 'Share page';
             } else if (action === Actions.OpenTOC) {
-                element = document.getElementById('toc-button');
+                element = HTMLUtilities.findElement(this.links, "#toc-button") as HTMLButtonElement;
                 title = 'Open Table of Contents';
             } else if (action === Actions.PreviousPage) {
-                element = document.getElementById('prev-page-btn');
+                element = HTMLUtilities.findElement(this.pageContainer, '#prev-page-btn') as HTMLDivElement;
                 title = 'Previous page';
             }
 
@@ -505,6 +505,8 @@ export default class IFrameNavigator implements Navigator {
             this.chapterTitle = HTMLUtilities.findRequiredElement(this.infoBottom, "span[class=chapter-title]") as HTMLSpanElement;
             this.chapterPosition = HTMLUtilities.findRequiredElement(this.infoBottom, "span[class=chapter-position]") as HTMLSpanElement;
             this.menuControl = HTMLUtilities.findRequiredElement(element, "button.trigger") as HTMLButtonElement;
+            this.pageContainer = HTMLUtilities.findRequiredElement(element, '#page-container') as HTMLDivElement || document.createElement('div');
+            this.iframeRoot = HTMLUtilities.findRequiredElement(this.pageContainer, '#iframe-container') as HTMLDivElement || document.createElement('div');
             // this.newPosition = null;
             // this.newElementId = null;
             // this.isBeingStyled = true;
@@ -631,12 +633,12 @@ export default class IFrameNavigator implements Navigator {
             this.handleKeyboardNavigation(key);
         });
 
-        const nextPageBtn = document.getElementById('next-page-btn');
+        const nextPageBtn = HTMLUtilities.findRequiredElement(this.pageContainer, '#next-page-btn');
         if (nextPageBtn) {
             nextPageBtn.addEventListener('click', this.handleNextPageClick.bind(this));
         }
 
-        const prevPageBtn = document.getElementById('prev-page-btn');
+        const prevPageBtn = HTMLUtilities.findRequiredElement(this.pageContainer, '#prev-page-btn');
         if (prevPageBtn) {
             prevPageBtn.addEventListener('click', this.handlePreviousPageClick.bind(this));
         }
@@ -785,8 +787,8 @@ export default class IFrameNavigator implements Navigator {
         if (this.isDisplayed(this.linksBottom)) {
             this.toggleDisplay(this.linksBottom);
         }
-        const prevPageBtn = document.getElementById('prev-page-btn');
-        const nextPageBtn = document.getElementById('next-page-btn');
+        const prevPageBtn = HTMLUtilities.findRequiredElement(this.pageContainer, '#prev-page-btn') as HTMLDivElement;
+        const nextPageBtn = HTMLUtilities.findRequiredElement(this.pageContainer, '#next-page-btn') as HTMLDivElement;
         if (prevPageBtn) {
             prevPageBtn.style.setProperty('display', displayState);
         }
@@ -1173,6 +1175,7 @@ export default class IFrameNavigator implements Navigator {
         this.errorMessage.setAttribute("aria-hidden", "true");
         this.infoTop.setAttribute("aria-hidden", "true");
         this.infoBottom.setAttribute("aria-hidden", "true");
+        this.pageContainer.setAttribute("aria-hidden", "true");
 
         if (control) {
             control.setAttribute("aria-hidden", "false");
@@ -1197,6 +1200,7 @@ export default class IFrameNavigator implements Navigator {
         this.errorMessage.setAttribute("aria-hidden", "false");
         this.infoTop.setAttribute("aria-hidden", "false");
         this.infoBottom.setAttribute("aria-hidden", "false");
+        this.pageContainer.setAttribute("aria-hidden", "false");
 
         this.hideElement(modal, control);
     }
@@ -1556,15 +1560,20 @@ export default class IFrameNavigator implements Navigator {
     //     }, 150);
     // }
 
-    // private showLoadingMessageAfterDelay() {
-    //     this.isLoading = true;
-    //     setTimeout(() => {
-    //         if (this.isLoading) {
-    //             this.loadingMessage.style.display = "block";
-    //             this.loadingMessage.classList.add("is-loading");
-    //         }
-    //     }, 200);
-    // }
+    // @ts-ignore
+    private showLoadingMessageAfterDelay() {
+        this.isLoading = true;
+        setTimeout(() => {
+            if (this.isLoading) {
+                this.showLoadingMessage();
+            }
+        }, 200);
+    }
+
+    private showLoadingMessage() {
+        this.loadingMessage.style.display = "block";
+        this.loadingMessage.classList.add("is-loading");
+    }
 
     // private hideIframeContents() {
     //     // this.isBeingStyled = true;

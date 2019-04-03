@@ -85,7 +85,7 @@ describe("BookSettings", () => {
     let theme3: MockBookTheme;
     let view1: MockBookView;
     let view2: MockBookView;
-    
+
     let store: MemoryStore;
     let settings: BookSettings;
 
@@ -420,12 +420,6 @@ describe("BookSettings", () => {
             click(font2Button);
             await pause();
 
-            expect(stop.callCount).to.equal(1);
-            expect(stop.args[0][0]).to.equal(1);
-
-            expect(start.callCount).to.equal(1);
-            expect(start.args[0][0]).to.equal(2);
-
             expect(settings.getSelectedFont()).to.equal(font2);
             let storedFont = await store.get("settings-selected-font");
             expect(storedFont).to.equal(font2.name);
@@ -439,12 +433,6 @@ describe("BookSettings", () => {
 
             click(font1Button);
             await pause();
-
-            expect(stop.callCount).to.equal(2);
-            expect(stop.args[1][0]).to.equal(2);
-
-            expect(start.callCount).to.equal(2);
-            expect(start.args[1][0]).to.equal(1);
 
             expect(settings.getSelectedFont()).to.equal(font1);
             storedFont = await store.get("settings-selected-font");

@@ -20,6 +20,7 @@ import Manifest from "../src/Manifest";
 import BookSettings from "../src/BookSettings";
 import MemoryStore from "../src/MemoryStore";
 import EventHandler from "../src/EventHandler";
+import { R2NavigatorView } from "../src/R2NavigatorView";
 
 describe("IFrameNavigator", () => {
     let store: Store;
@@ -60,6 +61,8 @@ describe("IFrameNavigator", () => {
     let getLastReadingPosition: sinon.SinonStub;
     let saveLastReadingPosition: sinon.SinonStub;
     let annotator: Annotator;
+    let navViewNextScreen: sinon.SinonStub;
+    let navViewPreviousScreen: sinon.SinonStub;
 
     let offlineStatusElement: HTMLElement;
     let renderControls: sinon.SinonStub;
@@ -73,6 +76,7 @@ describe("IFrameNavigator", () => {
     let getSelectedView: sinon.SinonStub;
     let getOfflineStatusElement: sinon.SinonStub;
     let settings: BookSettings;
+    let goToHrefLocation: sinon.SinonStub;
 
     let setupEvents: sinon.SinonStub;
     let eventHandler: EventHandler;
@@ -81,7 +85,7 @@ describe("IFrameNavigator", () => {
     let winHistoryChange: sinon.SinonStub;
 
     let element: HTMLElement;
-    let navigator: IFrameNavigator;
+    let nav: IFrameNavigator;
 
     class MockCacher implements Cacher {
         public enable() {
@@ -245,6 +249,128 @@ describe("IFrameNavigator", () => {
         }
     }
 
+    class MockRenditionContext {
+        // @ts-ignore
+        public rendition = {
+            viewport: {},
+        }
+        constructor() {
+        }
+    }
+
+    class MockNavView implements R2NavigatorView {
+        // @ts-ignore
+        public rendCtx: MockRenditionContext;
+
+        constructor() {
+        }
+
+        public isVerticalLayout(): boolean {
+            return false;
+        }
+        // @ts-ignore
+        public updateTheme(theme: string): void {
+            return;
+        }
+        public async getShareLink(): Promise<string> {
+            return 'shareLink';
+        }
+        // @ts-ignore
+        public addLocationChangedListener(callback: Function): void {
+            return;
+        }
+        // @ts-ignore
+        public addHoverLeftListener(callback: Function, settings?: any): void {
+            return;
+        }
+        // @ts-ignore
+        public addHoverRightListener(callback: Function, settings?: any): void {
+            return;
+        }
+        public async getChapterInfo(): Promise<any> {
+            return {
+                title: 'Start',
+                href: 'start.html',
+            };
+        }
+        public getLastPageTitle(): string {
+            return '8';
+        }
+        public async getStartEndPageTitles(): Promise<string> {
+            return '2';
+        }
+        public async getVisiblePageBreaks(): Promise<any> {
+            return {};
+        }
+        // @ts-ignore
+        public onIFrameLoaded(cb: Function): void {
+        }
+        // @ts-ignore
+        public onIFrameLoadStarted(cb: Function): void {
+        }
+        // @ts-ignore
+        public updateFont(font: string): void {
+            return;
+        }
+        // @ts-ignore
+        public updateFontSize(newFontSize: number): void {
+            return;
+        }
+        // @ts-ignore
+        public updateLineHeight(newLineHeight: number): void {
+            return;
+        }
+        // @ts-ignore
+        public updateTextAlign(newTextAlign: string): void {
+            return;
+        }
+        public nextScreen(): void {
+            navViewNextScreen();
+            return;
+        }
+        public previousScreen(): void {
+            navViewPreviousScreen();
+            return;
+        }
+        // @ts-ignore
+        public async goToHrefLocation(fullHref: string, cfi?: string): Promise<void> {
+            goToHrefLocation();
+            return;
+        }
+        // @ts-ignore
+        public async loadPublication(pubUrl: string, root: HTMLElement): Promise<void> {
+            this.rendCtx = new MockRenditionContext();
+            return;
+        }
+        // @ts-ignore
+        public async highlightShareLocation(bool: boolean, id: string, options?: any): Promise<string> {
+            return '';
+        }
+        public async goToWindowLocation(): Promise<void> {
+            return;
+        }
+    }
+
+    class MockShareBookLocation {
+        constructor() {
+        }
+        public setShareLink(): void {
+            return;
+        }
+        public toggleModal(): void {
+            return;
+        }
+        public hideModal(): void {
+            return;
+        }
+        public showModal(): void {
+            return;
+        }
+        public isModalVisible(): boolean {
+            return false;
+        }
+    }
+
     class MockEventHandler extends EventHandler {
         public setupEvents(iframe: HTMLIFrameElement) {
             return setupEvents(iframe);
@@ -315,6 +441,9 @@ describe("IFrameNavigator", () => {
         paginatorGoToElement = stub();
         paginatorCurrentPage = 2;
         paginator = new MockPaginator();
+        navViewNextScreen = stub();
+        navViewPreviousScreen = stub();
+        goToHrefLocation = stub();
 
         scrollerStart = stub();
         scrollerAtBottom = stub().returns(false);
@@ -368,8 +497,8 @@ describe("IFrameNavigator", () => {
 
         // The element must be in a document for iframe load events to work.
         window!.document.body.appendChild(element);
-        (document.documentElement as any).clientWidth = 1024;
-        (navigator as IFrameNavigator) = await IFrameNavigator.create({
+        Object.defineProperty((window as any).HTMLHtmlElement.prototype, 'clientWidth', {value: 1024});
+        nav = await IFrameNavigator.create({
             element,
             manifestUrl: new URL("http://example.com/manifest.json"),
             store,
@@ -385,11 +514,14 @@ describe("IFrameNavigator", () => {
             scroller,
             eventHandler
         });
+        // @ts-ignore
+        nav.navView = new MockNavView();
+        // @ts-ignore
+        nav.shareBookLocation = new MockShareBookLocation();
     });
 
     describe("#start", () => {
         it("should set element's HTML", async () => {
-            expect(element.innerHTML).to.contain("iframe");
             expect(element.innerHTML).to.contain("controls");
             expect(element.innerHTML).to.contain("controls-trigger");
         });
@@ -407,32 +539,18 @@ describe("IFrameNavigator", () => {
         });
 
         it("should render the chapter title", async () => {
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const chapterTitle = element.querySelector(".chapter-title") as HTMLSpanElement;
             await pause();
+            // @ts-ignore
+            await nav.navigatorPositionChanged();
             expect(chapterTitle.innerHTML).to.equal("(Start)");
-
-            iframe.src = "http://example.com/item-1.html";
-            await pause();
-            expect(chapterTitle.innerHTML).to.equal("(Item 1)");
-
-            iframe.src = "http://example.com/item-2.html";
-            await pause();
-            expect(chapterTitle.innerHTML).to.equal("(Item 2)");
-
-            iframe.src = "http://example.com/item-3.html";
-            await pause();
-            expect(chapterTitle.innerHTML).to.equal("(Current Chapter)");
-
-            iframe.src = "http://example.com/subitem-2.html";
-            await pause();
-            expect(chapterTitle.innerHTML).to.equal("(Subitem 2)");
-
         });
 
         it("should render the chapter position", async () => {
             const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
             await pause();
+            // @ts-ignore
+            await nav.updatePositionInfo();
             expect(chapterPosition.innerHTML).to.equal("Page 2 of 8");
         });
 
@@ -442,106 +560,35 @@ describe("IFrameNavigator", () => {
             expect(document.documentElement.clientWidth).to.equal(1024);
 
             expect(onFontSizeChange.callCount).to.equal(1);
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
-
-            await pause();
-            expect((iframe.contentDocument as any).body.style.fontSize).to.equal("14px");
-            expect((iframe.contentDocument as any).body.style.lineHeight).to.equal("1.5");
-            expect(paginator.sideMargin).to.equal(260);
-
-            const updateFontSize = onFontSizeChange.args[0][0];
-
-            getSelectedFontSize.returns("16px");
-            updateFontSize();
-
-            expect((iframe.contentDocument as any).body.style.fontSize).to.equal("16px");
-            expect((iframe.contentDocument as any).body.style.lineHeight).to.equal("1.5");
-            expect(paginator.sideMargin).to.equal(224);
-            expect(paginatorGoToPosition.callCount).to.equal(3);
-
-            // If the window is small, the view gets a smaller margin, but still based
-            // on the font size.
-            (document.documentElement as any).clientWidth = 100;
-
-            getSelectedFontSize.returns("14px");
-            updateFontSize();
-            expect((iframe.contentDocument as any).body.style.fontSize).to.equal("14px");
-            expect((iframe.contentDocument as any).body.style.lineHeight).to.equal("1.5");
-            expect(paginator.sideMargin).to.equal(28);
-
-            getSelectedFontSize.returns("16px");
-            updateFontSize();
-
-            expect((iframe.contentDocument as any).body.style.fontSize).to.equal("16px");
-            expect((iframe.contentDocument as any).body.style.lineHeight).to.equal("1.5");
-            expect(paginator.sideMargin).to.equal(32);
         });
 
         it("should give the settings a function to update the book view when a new view is selected", async () => {
-            expect(onViewChange.callCount).to.equal(1);
             let chapterTitle = element.querySelector(".chapter-title") as HTMLSpanElement;
             let chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
-            let links = element.querySelector("ul.links.top") as HTMLUListElement;
-            let linksBottom = element.querySelector("ul.links.bottom") as HTMLUListElement;
 
             await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(1);
 
             paginatorCurrentPage = 4;
             const updateBookView = onViewChange.args[0][0];
             updateBookView();
+            // @ts-ignore
+            await nav.updatePositionInfo();
             expect(chapterTitle.style.display).not.to.equal("none");
             expect(chapterPosition.style.display).not.to.equal("none");
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-            expect(linksBottom.className).to.contain(" inactive");
+            expect(chapterPosition.innerHTML).to.equal("Page 2 of 8");
 
             // A scroll event does nothing when the paginator is selected.
             (document.body as any).onscroll(new UIEvent("scroll"));
-            expect(saveLastReadingPosition.callCount).to.equal(1);
 
             getSelectedView.returns(scroller);
 
             updateBookView();
             expect(chapterTitle.style.display).to.equal("none");
             expect(chapterPosition.style.display).to.equal("none");
-            expect(linksBottom.className).not.to.contain(" inactive");
-
-            // Now a scroll event saves the new reading position.
-            await (document.body as any).onscroll(new UIEvent("scroll"));
-            expect(saveLastReadingPosition.callCount).to.equal(2);
-
-            // If the links are hidden, scrolling to the bottom brings up
-            // the bottom links.
-            links.className = "links top inactive";
-            linksBottom.className = "links bottom inactive";
-            scrollerAtBottom.returns(true);
-
-            await (document.body as any).onscroll(new UIEvent("scroll"));
-            expect(linksBottom.className).not.to.contain(" inactive");
-
-            // Scrolling back up hides the bottom links again.
-            scrollerAtBottom.returns(false);
-
-            await (document.body as any).onscroll(new UIEvent("scroll"));
-            expect(linksBottom.className).to.contain(" inactive");
-
-            // But if you brought the links up by tapping, scrolling down and
-            // back up doesn't change them.
-            links.className = "links top active";
-            linksBottom.className = "links bottom active";
-            scrollerAtBottom.returns(true);
-
-            await (document.body as any).onscroll(new UIEvent("scroll"));
-            expect(linksBottom.className).not.to.contain(" inactive");
-
-            scrollerAtBottom.returns(false);
-
-            await (document.body as any).onscroll(new UIEvent("scroll"));
-            expect(linksBottom.className).not.to.contain(" inactive");
         });
 
         it("should render the cache status if the cacher is configured", async () => {
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -582,7 +629,7 @@ describe("IFrameNavigator", () => {
         });
 
         it("should enable the cacher on load if it is configured", async () => {
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -603,7 +650,7 @@ describe("IFrameNavigator", () => {
             expect(enable.callCount).to.equal(1);
         });
 
-        it("should start the selected book font", async () => {
+        it.skip("should start the selected book font", async () => {
             await pause();
             expect(publisherStart.callCount).to.equal(0);
             expect(serifStart.callCount).to.equal(1);
@@ -617,7 +664,7 @@ describe("IFrameNavigator", () => {
             expect(nightStart.callCount).to.equal(0);
         });
 
-        it("should start the selected book view", async () => {
+        it.skip("should start the selected book view", async () => {
             await pause();
             expect(paginatorStart.callCount).to.equal(1);
             expect(paginatorStart.args[0][0]).to.equal(0);
@@ -625,7 +672,8 @@ describe("IFrameNavigator", () => {
             expect(document.body.style.overflow).to.equal("hidden");
         });
 
-        it("should set up the event handler on iframe load", async () => {
+        // event handler disabled
+        it.skip("should set up the event handler on iframe load", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
 
             await pause();
@@ -638,7 +686,7 @@ describe("IFrameNavigator", () => {
             expect(setupEvents.args[1][0]).to.equal((iframe.contentDocument as any));
         });
 
-        it("should load first spine item in the iframe", async () => {
+        it.skip("should load first spine item in the iframe", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             expect(iframe).not.to.be.null;
             expect(iframe.src).to.equal("http://example.com/start.html");
@@ -651,7 +699,7 @@ describe("IFrameNavigator", () => {
             });
         });
 
-        it("should navigate to an element from the iframe src", async () => {
+        it.skip("should navigate to an element from the iframe src", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             iframe.src = "http://example.com/item-1.html#element";
 
@@ -672,7 +720,7 @@ describe("IFrameNavigator", () => {
             // The up link isn't shown if it's not configured.
             expect(noUpLink).not.to.be.ok;
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -693,7 +741,7 @@ describe("IFrameNavigator", () => {
                     ariaLabel: "Up Aria Text"
                 }
             });
-            
+
             let upLink = element.querySelector("a[rel=up]") as HTMLAnchorElement;
             expect(upLink).to.be.ok;
             expect(upLink.href).to.equal("http://up.com/");
@@ -701,7 +749,7 @@ describe("IFrameNavigator", () => {
             expect(upLink.getAttribute("aria-label")).to.equal("Up Aria Text");
 
             // If there's no separate aria label, it uses the label.
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -721,7 +769,7 @@ describe("IFrameNavigator", () => {
                     label: "Up Text"
                 }
             });
-            
+
             upLink = element.querySelector("a[rel=up]") as HTMLAnchorElement;
             expect(upLink).to.be.ok;
             expect(upLink.href).to.equal("http://up.com/");
@@ -740,7 +788,7 @@ describe("IFrameNavigator", () => {
                 writable: true
             });
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -757,7 +805,7 @@ describe("IFrameNavigator", () => {
                 eventHandler,
                 allowFullscreen: true
             });
-            
+
             noFsm = element.querySelector(".fullscreen");
             // The button isn't created if it's not supported.
             expect(noFsm).not.to.be.ok;
@@ -767,7 +815,7 @@ describe("IFrameNavigator", () => {
                 value: true
             });
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -784,7 +832,7 @@ describe("IFrameNavigator", () => {
                 eventHandler,
                 allowFullscreen: true
             });
-            
+
             const fsm = element.querySelector(".fullscreen") as HTMLButtonElement;
             expect(fsm).to.be.ok;
         });
@@ -815,7 +863,7 @@ describe("IFrameNavigator", () => {
                 return onFullScreenChange();
             }
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -832,7 +880,7 @@ describe("IFrameNavigator", () => {
                 eventHandler,
                 allowFullscreen: true
             });
-            
+
             const fsm = element.querySelector(".fullscreen") as HTMLButtonElement;
             expect(fsm).to.be.ok;
 
@@ -850,7 +898,7 @@ describe("IFrameNavigator", () => {
             expect(onFullScreenChange.callCount).to.equal(2);
         });
 
-        it("should navigate to the previous spine item", async () => {
+        it.skip("should navigate to the previous spine item", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const originalSrc = iframe.src;
             const previous = element.querySelector("a[rel=prev]") as HTMLAnchorElement;
@@ -882,7 +930,7 @@ describe("IFrameNavigator", () => {
             expect(iframe.src).to.equal("http://example.com/toc.html");
         });
 
-        it("should navigate to the next spine item", async () => {
+        it.skip("should navigate to the next spine item", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const next = element.querySelector("a[rel=next]") as HTMLAnchorElement;
 
@@ -919,7 +967,7 @@ describe("IFrameNavigator", () => {
             const linksBottom = element.querySelector("ul.links.bottom") as HTMLUListElement;
             const trigger = element.querySelector(".trigger") as HTMLButtonElement;
             const triggerIcon = trigger.querySelector("svg") as SVGElement;
-            
+
             // Initially, the top navigation links are visible.
             // The bottom links are always hidden in paginated view.
             expect(links.className).to.contain(" active");
@@ -958,17 +1006,17 @@ describe("IFrameNavigator", () => {
             expect(linksBottom.className).not.to.contain(" active");
         });
 
-        it("should toggle the navigation links in scrolling view", async () => {
+        it.skip("should toggle the navigation links in scrolling view", async () => {
             const links = element.querySelector("ul.links.top") as HTMLUListElement;
             const linksBottom = element.querySelector("ul.links.bottom") as HTMLUListElement;
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const trigger = element.querySelector(".trigger") as HTMLButtonElement;
             const triggerIcon = trigger.querySelector("svg") as SVGElement;
-            
+
             getSelectedView.returns(scroller);
             iframe.src = "http://example.com/item-1.html";
             await pause();
-            
+
             // Initially, the navigation links are visible.
             expect(links.className).to.contain(" active");
             expect(links.className).not.to.contain(" inactive");
@@ -983,7 +1031,7 @@ describe("IFrameNavigator", () => {
             expect(linksBottom.className).to.contain(" inactive");
             expect(linksBottom.className).not.to.contain(" active");
 
-            eventHandler.onMiddleTap(new UIEvent("mouseup")); 
+            eventHandler.onMiddleTap(new UIEvent("mouseup"));
             expect(links.className).to.contain(" active");
             expect(links.className).not.to.contain(" inactive");
             expect(triggerIcon.className).to.contain(" inactive");
@@ -997,7 +1045,7 @@ describe("IFrameNavigator", () => {
             expect(linksBottom.className).to.contain(" inactive");
             expect(linksBottom.className).not.to.contain(" active");
 
-            eventHandler.onRightTap(new UIEvent("mouseup")); 
+            eventHandler.onRightTap(new UIEvent("mouseup"));
             expect(links.className).to.contain(" active");
             expect(links.className).not.to.contain(" inactive");
             expect(triggerIcon.className).to.contain(" inactive");
@@ -1018,268 +1066,31 @@ describe("IFrameNavigator", () => {
         });
 
         it("should go to previous page", async () => {
-            jsdom.changeURL(window, "http://example.com");
-            const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
-            
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
-            paginatorCurrentPage = 4;
-
-            // If you're not on the first page, it goes to the previous page.
-            eventHandler.onLeftTap(new UIEvent("mouseup"));
-            expect(onFirstPage.callCount).to.equal(1);
-            expect(goToPreviousPage.callCount).to.equal(1);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(2);
-            expect(saveLastReadingPosition.args[1][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            eventHandler.onBackwardSwipe(new UIEvent("mouseup"));
-            expect(onFirstPage.callCount).to.equal(2);
-            expect(goToPreviousPage.callCount).to.equal(2);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(3);
-            expect(saveLastReadingPosition.args[2][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            // If you're on the first page of the first spine item, it does nothing.
-            onFirstPage.returns(true);
-            paginatorCurrentPage = 3;
-
-            eventHandler.onLeftTap(new UIEvent("mouseup"));
-            expect(onFirstPage.callCount).to.equal(3);
-            expect(goToPreviousPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/start.html");
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            // If you're on the first page of a later spine item, it goes to the
-            // last page of the previous spine item.
-            iframe.src = "http://example.com/item-2.html";
-            await pause();
-            expect(paginatorStart.callCount).to.equal(2);
-
-            eventHandler.onLeftTap(new UIEvent("mouseup"));
-            expect(onFirstPage.callCount).to.equal(4);
-            expect(goToPreviousPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/item-1.html");
-
-            await pause();
-            expect(paginatorStart.callCount).to.equal(3);
-            expect(paginatorStart.args[2][0]).to.equal(1);
-
-            expect(saveLastReadingPosition.callCount).to.equal(5);
-            expect(saveLastReadingPosition.args[4][0]).to.deep.equal({
-                resource: "http://example.com/item-1.html",
-                position: 0.25
-            });
+            // const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
+            const prevPageButton = element.querySelector("#prev-page-btn");
+            click(prevPageButton);
+            expect(navViewPreviousScreen.callCount).to.equal(1);
         });
 
         it("should go to previous page when using the keyboard", async () => {
-            jsdom.changeURL(window, "http://example.com");
-            const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
-            
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
-            paginatorCurrentPage = 4;
-
-            // If you're not on the first page, it goes to the previous page.
-            eventHandler.onLeftArrow(new KeyboardEvent("keydown", { keyCode: 37 } as any));
-
-            expect(onFirstPage.callCount).to.equal(1);
-            expect(goToPreviousPage.callCount).to.equal(1);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(2);
-            expect(saveLastReadingPosition.args[1][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            let dispatchedLeftArrow = new KeyboardEvent("keydown", { keyCode: 37 } as any);
-            window.dispatchEvent(dispatchedLeftArrow);
-            expect(goToPreviousPage.callCount).to.equal(2);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(3);
-            expect(saveLastReadingPosition.args[2][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            // If you're on the first page of the first spine item, it does nothing.
-            onFirstPage.returns(true);
-            paginatorCurrentPage = 3;
-
-            eventHandler.onLeftArrow(new KeyboardEvent("keydown", { keyCode: 37 } as any));
-            expect(onFirstPage.callCount).to.equal(3);
-            expect(goToPreviousPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/start.html");
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            // If you're on the first page of a later spine item, it goes to the
-            // last page of the previous spine item.
-            iframe.src = "http://example.com/item-2.html";
-            await pause();
-            expect(paginatorStart.callCount).to.equal(2);
-
-            eventHandler.onLeftArrow(new KeyboardEvent("keydown", { keyCode: 37 } as any));
-            expect(onFirstPage.callCount).to.equal(4);
-            expect(goToPreviousPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/item-1.html");
-
-            await pause();
-            expect(paginatorStart.callCount).to.equal(3);
-            expect(paginatorStart.args[2][0]).to.equal(1);
-
-            expect(saveLastReadingPosition.callCount).to.equal(5);
-            expect(saveLastReadingPosition.args[4][0]).to.deep.equal({
-                resource: "http://example.com/item-1.html",
-                position: 0.25
-            });
+            // @ts-ignore
+            nav.handleKeyboardNavigation('ArrowLeft');
+            expect(navViewPreviousScreen.callCount).to.equal(1);
         });
 
         it("should go to next page", async () => {
-            jsdom.changeURL(window, "http://example.com");
-            const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
-            
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
-            paginatorCurrentPage = 4;
-
-            // If you're not on the last page, it goes to the next page.
-            eventHandler.onRightTap(new UIEvent("mouseup"));
-            expect(onLastPage.callCount).to.equal(1);
-            expect(goToNextPage.callCount).to.equal(1);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(2);
-            expect(saveLastReadingPosition.args[1][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            eventHandler.onForwardSwipe(new UIEvent("mouseup"));
-            expect(onLastPage.callCount).to.equal(2);
-            expect(goToNextPage.callCount).to.equal(2);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(3);
-            expect(saveLastReadingPosition.args[1][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            // If you're on the last page of the last spine item, it does nothing.
-            iframe.src = "http://example.com/item-3.html";
-            await pause();
-            onLastPage.returns(true);
-            paginatorCurrentPage = 3;
-
-            eventHandler.onRightTap(new UIEvent("mouseup"));
-            expect(onLastPage.callCount).to.equal(3);
-            expect(goToNextPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/item-3.html");
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            // If you're on the last page of an earlier spine item, it goes to the
-            // first page of the next spine item.
-            iframe.src = "http://example.com/item-1.html";
-            await pause();
-            expect(paginatorStart.callCount).to.equal(3);
-
-            eventHandler.onRightTap(new UIEvent("mouseup"));
-            expect(onLastPage.callCount).to.equal(4);
-            expect(goToNextPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/item-2.html");
-
-            await pause();
-            expect(paginatorStart.callCount).to.equal(4);
-            expect(paginatorStart.args[3][0]).to.equal(0);
-
-            expect(saveLastReadingPosition.callCount).to.equal(6);
-            expect(saveLastReadingPosition.args[5][0]).to.deep.equal({
-                resource: "http://example.com/item-2.html",
-                position: 0.25
-            });
+            const nextPageButton = element.querySelector("#next-page-btn");
+            click(nextPageButton);
+            expect(navViewNextScreen.callCount).to.equal(1);
         });
 
         it("should go to next page when using the keyboard", async () => {
-            jsdom.changeURL(window, "http://example.com");
-            const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
-            
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
-            paginatorCurrentPage = 4;
-
-            // If you're not on the last page, it goes to the next page.
-            eventHandler.onRightArrow(new KeyboardEvent("keydown", { keyCode: 39 } as any));
-            expect(onLastPage.callCount).to.equal(1);
-            expect(goToNextPage.callCount).to.equal(1);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(2);
-            expect(saveLastReadingPosition.args[1][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            let dispatchedRightArrow = new KeyboardEvent("keydown", { keyCode: 39 } as any);
-            window.dispatchEvent(dispatchedRightArrow);
-            expect(onLastPage.callCount).to.equal(2);
-            expect(goToNextPage.callCount).to.equal(2);
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(3);
-            expect(saveLastReadingPosition.args[1][0]).to.deep.equal({
-                resource: "http://example.com/start.html",
-                position: 0.25
-            });
-
-            // If you're on the last page of the last spine item, it does nothing.
-            iframe.src = "http://example.com/item-3.html";
-            await pause();
-            onLastPage.returns(true);
-            paginatorCurrentPage = 3;
-
-            eventHandler.onRightArrow(new KeyboardEvent("keydown", { keyCode: 39 } as any));
-            expect(onLastPage.callCount).to.equal(3);
-            expect(goToNextPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/item-3.html");
-            expect(chapterPosition.innerHTML).to.equal("Page 4 of 8");
-
-            // If you're on the last page of an earlier spine item, it goes to the
-            // first page of the next spine item.
-            iframe.src = "http://example.com/item-1.html";
-            await pause();
-            expect(paginatorStart.callCount).to.equal(3);
-
-            eventHandler.onRightArrow(new KeyboardEvent("keydown", { keyCode: 39 } as any));
-            expect(onLastPage.callCount).to.equal(4);
-            expect(goToNextPage.callCount).to.equal(2);
-            expect(iframe.src).to.equal("http://example.com/item-2.html");
-
-            await pause();
-            expect(paginatorStart.callCount).to.equal(4);
-            expect(paginatorStart.args[3][0]).to.equal(0);
-
-            expect(saveLastReadingPosition.callCount).to.equal(6);
-            expect(saveLastReadingPosition.args[5][0]).to.deep.equal({
-                resource: "http://example.com/item-2.html",
-                position: 0.25
-            });
+            // @ts-ignore
+            nav.handleKeyboardNavigation('ArrowRight');
+            expect(navViewNextScreen.callCount).to.equal(1);
         });
 
-        it("should set iframe classes on hover in the paginated view", async () => {
+        it.skip("should set iframe classes on hover in the paginated view", async () => {
             await pause();
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
 
@@ -1361,7 +1172,7 @@ describe("IFrameNavigator", () => {
             expect(iframe.className).to.equal("");
         });
 
-        it("should do nothing on hover in the scrolled view", async () => {
+        it.skip("should do nothing on hover in the scrolled view", async () => {
             await pause();
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
 
@@ -1383,7 +1194,7 @@ describe("IFrameNavigator", () => {
             expect(iframe.className).to.equal("");
         });
 
-        it("should maintain paginator position when window is resized", async () => {
+        it.skip("should maintain paginator position when window is resized", async () => {
             expect(paginatorGoToPosition.callCount).to.equal(2);
             window.dispatchEvent(new Event('resize'));
             await pause(200);
@@ -1395,7 +1206,7 @@ describe("IFrameNavigator", () => {
             expect(paginatorGoToPosition.args[0][0]).to.equal(0.25);
         });
 
-        it("should update chapter position info when window is resized", async () => {
+        it.skip("should update chapter position info when window is resized", async () => {
             const chapterPosition = element.querySelector(".chapter-position") as HTMLSpanElement;
             paginatorCurrentPage = 3;
             window.dispatchEvent(new Event('resize'));
@@ -1403,7 +1214,7 @@ describe("IFrameNavigator", () => {
             expect(chapterPosition.innerHTML).to.equal("Page 3 of 8");
         });
 
-        it("should set heights on view and top and bottom info when loading iframe", async () => {
+        it.skip("should set heights on view and top and bottom info when loading iframe", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const linksTop = element.querySelector("ul.links.top") as HTMLUListElement;
             const linksBottom = element.querySelector("ul.links.bottom") as HTMLUListElement;
@@ -1423,28 +1234,27 @@ describe("IFrameNavigator", () => {
         });
 
         it("should show and animate loading message while iframe is loading", async () => {
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const loading = element.querySelector("div[class=loading]") as any;
-            const next = element.querySelector("a[rel=next]") as HTMLAnchorElement;
 
-            // Slow down annotator so the loading message has time to appear.
-            saveLastReadingPosition.returns(new Promise<void>(async (resolve) => {
-                await pause(300);
-                resolve();
-            }));
+            // @ts-ignore
+            nav.showLoadingMessage();
+            expect(loading.style.display).not.to.equal("none");
+            expect(loading.getAttribute("class")).to.contain("is-loading");
 
-            iframe.src = "http://example.com/item-1.html";
-            await pause();
-            click(next);
+            // @ts-ignore
+            nav.hideLoadingMessage();
+            expect(loading.style.display).to.equal("none");
+            expect(loading.getAttribute("class")).to.not.contain("is-loading");
+
+            // @ts-ignore
+            nav.showLoadingMessageAfterDelay();
+            console.log('called show after delay');
             await pause(200);
             expect(loading.style.display).not.to.equal("none");
             expect(loading.getAttribute("class")).to.contain("is-loading");
-            await pause(150);
-            expect(loading.style.display).to.equal("none");
-            expect(loading.getAttribute("class")).to.not.contain("is-loading");
         });
 
-        it("should change the iframe’s opacity once it is loaded and users settings are applied", async () => {
+        it.skip("should change the iframe’s opacity once it is loaded and users settings are applied", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const next = element.querySelector("a[rel=next]") as HTMLAnchorElement;
 
@@ -1462,7 +1272,7 @@ describe("IFrameNavigator", () => {
             expect(iframe.style.opacity).to.equal("0");
         });
 
-        it("should inject the readonly epubReadingSystem object into the iframe’s window.navigator", async () => {
+        it.skip("should inject the readonly epubReadingSystem object into the iframe’s window.navigator", async () => {
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             expect(((iframe.contentWindow as any).navigator as any).epubReadingSystem).to.include.all.keys("name", "version");
             expect(((iframe.contentWindow as any).navigator as any).epubReadingSystem.name).to.equal("Webpub viewer");
@@ -1489,7 +1299,7 @@ describe("IFrameNavigator", () => {
             expect(((iframe.contentWindow as any).navigator as any).epubReadingSystem.name).to.equal("Webpub viewer");
         });
 
-        it("should show error message when iframe fails to load", async () => {
+        it.skip("should show error message when iframe fails to load", async () => {
             jsdom.changeURL(window, "http://example.com/");
 
             const iframe = element.querySelector("iframe") as HTMLIFrameElement;
@@ -1558,7 +1368,7 @@ describe("IFrameNavigator", () => {
             }, new URL("http://example.com/manifest.json"));
             store.set("manifest", JSON.stringify(manifest));
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -1632,7 +1442,7 @@ describe("IFrameNavigator", () => {
             }, new URL("http://example.com/manifest.json"));
             store.set("manifest", JSON.stringify(manifest));
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -1649,7 +1459,7 @@ describe("IFrameNavigator", () => {
                 eventHandler
             });
             const toc = element.querySelector(".contents-view") as HTMLDivElement;
-            
+
             const list = toc.querySelector("ol") as HTMLOListElement;
             expect(list.tagName.toLowerCase()).to.equal("ol");
 
@@ -1679,8 +1489,7 @@ describe("IFrameNavigator", () => {
         });
 
         it("should show and hide when contents control is clicked", async () => {
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
-            const toc = element.querySelector(".contents-view") as HTMLDivElement; 
+            const toc = element.querySelector(".contents-view") as HTMLDivElement;
             const contentsControl = element.querySelector("button.contents") as HTMLButtonElement;
             const openIcon = contentsControl.querySelector(".icon.open") as SVGElement;
             const closeIcon = contentsControl.querySelector(".icon.close") as SVGElement;
@@ -1695,7 +1504,6 @@ describe("IFrameNavigator", () => {
             expect(toc.className).to.contain(" inactive");
             expect(toc.className).not.to.contain(" active");
             expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/start.html");
             expect(link1.tabIndex).to.equal(-1);
             expect(link2.tabIndex).to.equal(-1);
             expect(link3.tabIndex).to.equal(-1);
@@ -1708,7 +1516,6 @@ describe("IFrameNavigator", () => {
             expect(toc.className).to.contain(" active");
             expect(toc.className).not.to.contain(" inactive");
             expect(contentsControl.getAttribute("aria-expanded")).to.equal("true");
-            expect(iframe.src).to.equal("http://example.com/start.html");
             expect(link1.tabIndex).to.equal(0);
             expect(link2.tabIndex).to.equal(0);
             expect(link3.tabIndex).to.equal(0);
@@ -1721,7 +1528,6 @@ describe("IFrameNavigator", () => {
             expect(toc.className).to.contain(" inactive");
             expect(toc.className).not.to.contain(" active");
             expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/start.html");
             expect(link1.tabIndex).to.equal(-1);
             expect(link2.tabIndex).to.equal(-1);
             expect(link3.tabIndex).to.equal(-1);
@@ -1732,7 +1538,6 @@ describe("IFrameNavigator", () => {
         });
 
         it("should hide when other navigation links are clicked", async () => {
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const toc = element.querySelector(".contents-view") as HTMLDivElement;
             const contentsControl = element.querySelector("button.contents") as HTMLButtonElement;
             getSelectedView.returns(scroller);
@@ -1743,7 +1548,6 @@ describe("IFrameNavigator", () => {
             const link3 = links[2] as HTMLAnchorElement;
             const link4 = links[3] as HTMLAnchorElement;
 
-            iframe.src = "http://example.com/item-1.html";
             await pause();
             click(contentsControl);
 
@@ -1756,45 +1560,44 @@ describe("IFrameNavigator", () => {
             expect(link4.tabIndex).to.equal(0);
             expect(document.body.style.overflow).to.equal("hidden");
 
-            const nextChapterLink = element.querySelector("a[rel=next]") as HTMLAnchorElement;
-            click(nextChapterLink);
-            await pause();
-            expect(toc.className).to.contain(" inactive");
-            expect(toc.className).not.to.contain(" active");
-            expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(link1.tabIndex).to.equal(-1);
-            expect(link2.tabIndex).to.equal(-1);
-            expect(link3.tabIndex).to.equal(-1);
-            expect(link4.tabIndex).to.equal(-1);
-            expect(document.body.style.overflow).not.to.equal("hidden");
+            // Chapter links disabled
+            // const nextChapterLink = element.querySelector("a[rel=next]") as HTMLAnchorElement;
+            // click(nextChapterLink);
+            // await pause();
+            // expect(toc.className).to.contain(" inactive");
+            // expect(toc.className).not.to.contain(" active");
+            // expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
+            // expect(link1.tabIndex).to.equal(-1);
+            // expect(link2.tabIndex).to.equal(-1);
+            // expect(link3.tabIndex).to.equal(-1);
+            // expect(link4.tabIndex).to.equal(-1);
+            // expect(document.body.style.overflow).not.to.equal("hidden");
 
-            click(contentsControl);
-            expect(toc.className).to.contain(" active");
-            expect(toc.className).not.to.contain(" inactive");
-            expect(contentsControl.getAttribute("aria-expanded")).to.equal("true");
-            expect(link1.tabIndex).to.equal(0);
-            expect(link2.tabIndex).to.equal(0);
-            expect(link3.tabIndex).to.equal(0);
-            expect(link4.tabIndex).to.equal(0);
-            expect(document.body.style.overflow).to.equal("hidden");
+            // click(contentsControl);
+            // expect(toc.className).to.contain(" active");
+            // expect(toc.className).not.to.contain(" inactive");
+            // expect(contentsControl.getAttribute("aria-expanded")).to.equal("true");
+            // expect(link1.tabIndex).to.equal(0);
+            // expect(link2.tabIndex).to.equal(0);
+            // expect(link3.tabIndex).to.equal(0);
+            // expect(link4.tabIndex).to.equal(0);
+            // expect(document.body.style.overflow).to.equal("hidden");
 
-            const previousChapterLink = element.querySelector("a[rel=prev]") as HTMLAnchorElement;
-            click(previousChapterLink);
-            await pause();
-            expect(toc.className).to.contain(" inactive");
-            expect(toc.className).not.to.contain(" active");
-            expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(link1.tabIndex).to.equal(-1);
-            expect(link2.tabIndex).to.equal(-1);
-            expect(link3.tabIndex).to.equal(-1);
-            expect(link4.tabIndex).to.equal(-1);
-            expect(document.body.style.overflow).not.to.equal("hidden");
+            // const previousChapterLink = element.querySelector("a[rel=prev]") as HTMLAnchorElement;
+            // click(previousChapterLink);
+            // await pause();
+            // expect(toc.className).to.contain(" inactive");
+            // expect(toc.className).not.to.contain(" active");
+            // expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
+            // expect(link1.tabIndex).to.equal(-1);
+            // expect(link2.tabIndex).to.equal(-1);
+            // expect(link3.tabIndex).to.equal(-1);
+            // expect(link4.tabIndex).to.equal(-1);
+            // expect(document.body.style.overflow).not.to.equal("hidden");
         });
 
         it("should navigate to a toc item", async () => {
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const toc = element.querySelector(".contents-view") as HTMLDivElement;
-            expect(iframe.src).to.equal("http://example.com/start.html");
             getSelectedView.returns(scroller);
 
             const contentsControl = element.querySelector("button.contents") as HTMLButtonElement;
@@ -1808,10 +1611,10 @@ describe("IFrameNavigator", () => {
             expect(toc.className).to.contain(" inactive");
             expect(toc.className).not.to.contain(" active");
             expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/item-1.html");
             expect(link1.tabIndex).to.equal(-1);
             expect(link2.tabIndex).to.equal(-1);
             expect(document.body.style.overflow).not.to.equal("hidden");
+            expect(goToHrefLocation.callCount).to.equal(1);
 
             click(contentsControl);
             expect(toc.className).to.contain(" active");
@@ -1825,13 +1628,12 @@ describe("IFrameNavigator", () => {
             expect(toc.className).to.contain(" inactive");
             expect(toc.className).not.to.contain(" active");
             expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/subitem-1.html");
             expect(link1.tabIndex).to.equal(-1);
             expect(link2.tabIndex).to.equal(-1);
             expect(document.body.style.overflow).not.to.equal("hidden");
+            expect(goToHrefLocation.callCount).to.equal(2);
 
             await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(3);
 
             // Clicking the link that's already open won't reload the iframe.
             click(contentsControl);
@@ -1839,33 +1641,31 @@ describe("IFrameNavigator", () => {
             expect(toc.className).to.contain(" inactive");
             expect(toc.className).not.to.contain(" active");
             expect(contentsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/subitem-1.html");
             expect(link1.tabIndex).to.equal(-1);
             expect(link2.tabIndex).to.equal(-1);
             expect(document.body.style.overflow).not.to.equal("hidden");
 
-            await pause();
-            expect(saveLastReadingPosition.callCount).to.equal(3);
+
         });
 
-        it("should navigate to a toc item that points to an anchor in a resource", async () => {
+        it.skip("should navigate to a toc item that points to an anchor in a resource", async () => {
             const manifest = new Manifest({
                 metadata: {
                     title: "Title"
                 },
                 spine: [
                     { href: "item-1.html" },
-                    { href: "item-2.html" } 
+                    { href: "item-2.html" }
                 ],
                 toc: [
                     { href: "item-1.html" },
                     { href: "item-2.html#chapter1" },
-                    { href: "item-2.html#chapter2" } 
+                    { href: "item-2.html#chapter2" }
                 ]
             }, new URL("http://example.com/manifest.json"));
             store.set("manifest", JSON.stringify(manifest));
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -1933,7 +1733,7 @@ describe("IFrameNavigator", () => {
             }, new URL("http://example.com/manifest.json"));
             store.set("manifest", JSON.stringify(manifest));
 
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -1950,7 +1750,6 @@ describe("IFrameNavigator", () => {
                 eventHandler
             });
 
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const toc = element.querySelector(".contents-view") as HTMLDivElement;
 
             const links = toc.querySelectorAll("li > a");
@@ -1960,19 +1759,21 @@ describe("IFrameNavigator", () => {
             expect(link1.className).to.equal("");
             expect(link2.className).to.equal("");
 
-            iframe.src = "http://example.com/item-1.html";
             await pause();
+            // @ts-ignore
+            nav.setActiveTOCItem("/item-1.html");
             expect(link1.className).to.equal("active");
             expect(link2.className).to.equal("");
 
-            iframe.src = "http://example.com/subitem-1.html";
             await pause();
+            // @ts-ignore
+            nav.setActiveTOCItem("/subitem-1.html");
             expect(link1.className).to.equal("");
             expect(link2.className).to.equal("active");
         });
 
         it("should close when escape is pressed", () => {
-            const toc = element.querySelector(".contents-view") as HTMLDivElement; 
+            const toc = element.querySelector(".contents-view") as HTMLDivElement;
             const contentsControl = element.querySelector("button.contents") as HTMLButtonElement;
 
             click(contentsControl);
@@ -1998,7 +1799,7 @@ describe("IFrameNavigator", () => {
             const topNav = navs[0] as HTMLElement;
             const bottomNav = navs[1] as HTMLElement;
 
-            const toc = element.querySelector(".contents-view") as HTMLDivElement; 
+            const toc = element.querySelector(".contents-view") as HTMLDivElement;
             const contentsControl = element.querySelector("button.contents") as HTMLButtonElement;
 
             click(contentsControl);
@@ -2061,7 +1862,6 @@ describe("IFrameNavigator", () => {
 
     describe("settings", () => {
         it("should show and hide when settings control is clicked", async () => {
-            const iframe = element.querySelector("iframe") as HTMLIFrameElement;
             const settings = element.querySelector(".settings-view") as HTMLDivElement;
             const settingsControl = element.querySelector("button.settings") as HTMLButtonElement;
             const openIcon = settingsControl.querySelector(".icon.open") as SVGElement;
@@ -2072,7 +1872,6 @@ describe("IFrameNavigator", () => {
 
             expect(settings.className).to.contain(" inactive");
             expect(settingsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/start.html");
             expect(button.tabIndex).to.equal(-1);
             expect(openIcon.getAttribute("class")).not.to.contain(" inactive");
             expect(closeIcon.getAttribute("class")).to.contain(" inactive");
@@ -2081,7 +1880,6 @@ describe("IFrameNavigator", () => {
             expect(settings.className).to.contain(" active");
             expect(settings.className).not.to.contain(" inactive");
             expect(settingsControl.getAttribute("aria-expanded")).to.equal("true");
-            expect(iframe.src).to.equal("http://example.com/start.html");
             expect(button.tabIndex).to.equal(0);
             expect(openIcon.getAttribute("class")).to.contain(" inactive");
             expect(closeIcon.getAttribute("class")).not.to.contain(" inactive");
@@ -2090,16 +1888,14 @@ describe("IFrameNavigator", () => {
             expect(settings.className).to.contain(" inactive");
             expect(settings.className).not.to.contain(" active");
             expect(settingsControl.getAttribute("aria-expanded")).to.equal("false");
-            expect(iframe.src).to.equal("http://example.com/start.html");
             expect(button.tabIndex).to.equal(-1);
             expect(openIcon.getAttribute("class")).not.to.contain(" inactive");
             expect(closeIcon.getAttribute("class")).to.contain(" inactive");
         });
 
-        it("should hide settings and nav when settings view is clicked", async () => {
+        it("should hide settings when settings view is clicked", async () => {
             const settings = element.querySelector(".settings-view") as HTMLDivElement;
             const settingsControl = element.querySelector("button.settings") as HTMLButtonElement;
-            const links = element.querySelector(".links.top") as HTMLDivElement;
 
             settings.innerHTML = "<button tabindex=-1>Test</button>";
             const button = settings.querySelector("button") as HTMLButtonElement;
@@ -2108,26 +1904,22 @@ describe("IFrameNavigator", () => {
             expect(settings.className).not.to.contain(" active");
             expect(settingsControl.getAttribute("aria-expanded")).to.equal("false");
             expect(button.tabIndex).to.equal(-1);
-            expect(links.className).to.contain(" active");
 
             click(settingsControl);
             expect(settings.className).to.contain(" active");
             expect(settings.className).not.to.contain(" inactive");
             expect(settingsControl.getAttribute("aria-expanded")).to.equal("true");
             expect(button.tabIndex).to.equal(0);
-            expect(links.className).to.contain(" active");
 
             click(settings);
             expect(settings.className).to.contain(" inactive");
             expect(settings.className).not.to.contain(" active");
             expect(settingsControl.getAttribute("aria-expanded")).to.equal("false");
             expect(button.tabIndex).to.equal(-1);
-            expect(links.className).not.to.contain(" active");
-            expect(links.className).to.contain(" inactive");
         });
 
         it("should close when escape is pressed", () => {
-            const settings = element.querySelector(".settings-view") as HTMLDivElement; 
+            const settings = element.querySelector(".settings-view") as HTMLDivElement;
             const settingsControl = element.querySelector("button.settings") as HTMLButtonElement;
 
             click(settingsControl);
@@ -2153,7 +1945,7 @@ describe("IFrameNavigator", () => {
             const topNav = navs[0] as HTMLElement;
             const bottomNav = navs[1] as HTMLElement;
 
-            const settings = element.querySelector(".settings-view") as HTMLDivElement; 
+            const settings = element.querySelector(".settings-view") as HTMLDivElement;
             const settingsControl = element.querySelector("button.settings") as HTMLButtonElement;
 
             click(settingsControl);
@@ -2219,8 +2011,8 @@ describe("IFrameNavigator", () => {
             let scrollingSuggestion = element.querySelector(".scrolling-suggestion") as HTMLAnchorElement;
             expect(scrollingSuggestion.style.display).not.to.equal("none");
 
-            getSelectedView.returns(scroller);            
-            (navigator as IFrameNavigator) = await IFrameNavigator.create({
+            getSelectedView.returns(scroller);
+            nav = await IFrameNavigator.create({
                 element,
                 manifestUrl: new URL("http://example.com/manifest.json"),
                 store,
@@ -2237,7 +2029,7 @@ describe("IFrameNavigator", () => {
                 eventHandler
             });
             scrollingSuggestion = element.querySelector(".scrolling-suggestion") as HTMLAnchorElement;
-            
+
             expect(scrollingSuggestion.style.display).to.equal("none");
         });
 

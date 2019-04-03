@@ -32,6 +32,14 @@ describe("EventHandler", () => {
     let parentLinkClicked: sinon.SinonStub;
     let internalLinkClicked: sinon.SinonStub;
 
+    const setProperty = (property: string, val: any) => {
+        Object.defineProperty((window as any).HTMLHtmlElement.prototype, property, {
+            value: val,
+            enumerable: true,
+            configurable: true,
+        });
+    }
+
     const event = (type: string, x: number = 0, y: number = 0, target: HTMLElement = div) => {
         const event = document.createEvent("UIEvent") as any;
         event.initEvent(type, true, true);
@@ -118,7 +126,7 @@ describe("EventHandler", () => {
 
         (window as any).devicePixelRatio = 2;
         (window as any).innerWidth = 1024;
-        (document.documentElement as any).clientWidth = 1024;
+        setProperty('clientWidth', 1024);
     });
 
     describe("#setupEvents", () => {
@@ -290,7 +298,7 @@ describe("EventHandler", () => {
                 e.initEvent("touchstart", true, true);
                 e.changedTouches = [{}, {}];
                 div.dispatchEvent(e);
-                
+
                 event("touchend");
 
                 await pause(250);
@@ -302,7 +310,7 @@ describe("EventHandler", () => {
                 e.initEvent("touchend", true, true);
                 e.changedTouches = [{}, {}];
                 div.dispatchEvent(e);
-                
+
                 await pause(250);
 
                 expect(onLeftTap.callCount).to.equal(0);
@@ -313,7 +321,7 @@ describe("EventHandler", () => {
                 e.initEvent("touchstart", true, true);
                 e.changedTouches = [];
                 div.dispatchEvent(e);
-                
+
                 event("touchend");
 
                 await pause(250);
@@ -325,7 +333,7 @@ describe("EventHandler", () => {
                 e.initEvent("touchend", true, true);
                 e.changedTouches = [];
                 div.dispatchEvent(e);
-                
+
                 await pause(250);
 
                 expect(onLeftTap.callCount).to.equal(0);
@@ -512,7 +520,7 @@ describe("EventHandler", () => {
                 const keyEvent = document.createEvent("UIEvent") as any;
                 keyEvent.initEvent(type, true, true);
                 keyEvent.keyCode = code;
-                
+
                 target.dispatchEvent(keyEvent);
             };
 
