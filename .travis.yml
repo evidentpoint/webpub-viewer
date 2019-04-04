@@ -1,4 +1,26 @@
+dist: xenial
+addons:
+  chrome: stable
+  firefox: latest
+services:
+  - docker
+env:
+  - MOZ_HEADLESS=1
+branches:
+  only:
+    - master
 language: node_js
-
-node_js:
-  - "lts/carbon"
+node_js: lts/*
+cache: npm
+install:
+  - npm install
+  - npm run examples
+jobs:
+  include:
+    - stage: test
+      script: npm run test
+    - stage: visual-test
+      script:
+        - npm install -g backstopjs
+        - npm run static &
+        - npm run visual-test
