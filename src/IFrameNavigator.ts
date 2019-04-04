@@ -41,7 +41,7 @@ const svgUplink = (label: string) => {
         viewBox="${IconLib.VIEWBOX_ATTR}" aria-labelledby="up-label"
         preserveAspectRatio="xMidYMid meet" role="img" class="icon">
         <title id="up-label">${label}</title>
-        ${IconLib.icons.home}
+        ${IconLib.icons.arrowIcon}
     </svg>`
 }
 
@@ -130,6 +130,9 @@ const template = `
             <span class="setting-text contents" id="contents-label">Contents</span>
           </button>
           <div class="contents-view controls-view inactive" aria-hidden="true"></div>
+        </li>
+        <li id="logo-banner">
+            ${imgUplink('logo-name.svg', 'Open Square Logo')}
         </li>
         <li id="share-btn-container">
         </li>
@@ -892,7 +895,7 @@ export default class IFrameNavigator implements Navigator {
                 const upUrl = this.upLinkConfig.url;
                 const upLabel = this.upLinkConfig.label || "";
                 const upAriaLabel = this.upLinkConfig.ariaLabel || upLabel;
-                const upHTML = upLinkTemplate(upUrl.href, upLabel, upAriaLabel, this.upLinkConfig.imageSrc, this.upLinkConfig.imageAlt);
+                const upHTML = upLinkTemplate(upUrl.href, upLabel, upAriaLabel);
                 const upParent : HTMLLIElement = document.createElement("li");
                 upParent.classList.add("uplink-wrapper");
                 upParent.innerHTML = upHTML;

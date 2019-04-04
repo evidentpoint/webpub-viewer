@@ -21,7 +21,6 @@ describe("BrowserUtilities", () => {
     describe("#getWidth", () => {
         it("should return current width", () => {
             expect(BrowserUtilities.getWidth()).to.equal(500);
-            debugger;
             setProperty('clientWidth', 100);
             expect(BrowserUtilities.getWidth()).to.equal(100);
         });

@@ -3,19 +3,8 @@ import { stub } from "sinon";
 
 import {
     Publication,
-    // @ts-ignore
-    IFrameLoader,
-    // @ts-ignore
-    R2ContentViewFactory,
-    // @ts-ignore
-    RenditionContext as R2RenditionContext,
-    // @ts-ignore
     Rendition,
     Navigator,
-    // @ts-ignore
-    PageTitleTocResolver,
-    // @ts-ignore
-    ViewportResizer,
 } from '@readium/navigator-web';
 
 import {
@@ -26,7 +15,7 @@ import { R2NavigatorView } from "../src/R2NavigatorView";
 import { ColumnSettings } from "../src/BookSettings";
 import * as sinon from "sinon";
 
-describe.only('R2NavigatorView', () => {
+describe('R2NavigatorView', () => {
     // @ts-ignore
     let navView: R2NavigatorView;
     let handleKeyboardNavigation: sinon.SinonStub;
