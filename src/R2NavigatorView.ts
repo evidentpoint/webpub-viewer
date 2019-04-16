@@ -65,6 +65,7 @@ export class R2NavigatorView {
   private preventPageChange: boolean = false;
   private keyboardCb: (key: string) => {};
   private keys: string[];
+  private marginSize: number = 0;
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -280,6 +281,17 @@ export class R2NavigatorView {
       }
 
       this.rendCtx.rendition.updateViewSettings([themeSettings]);
+  }
+
+  public async updateMarginSize(margin: number): Promise<void> {
+    this.marginSize = margin;
+
+    this.updateSize();
+
+    const loc = this.rendCtx.navigator.getCurrentLocation();
+    if (loc) {
+      await this.rendCtx.rendition.viewport.renderAtLocation(loc);
+    }
   }
 
   public nextScreen(): void {
@@ -762,6 +774,6 @@ export class R2NavigatorView {
           nextBtnWidth = rect.width;
       }
 
-      return window.innerWidth - prevBtnWidth - nextBtnWidth;
+      return window.innerWidth - prevBtnWidth - nextBtnWidth - (this.marginSize * 2);
   }
 }

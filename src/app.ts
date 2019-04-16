@@ -22,6 +22,7 @@ const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNaviga
     // const fontSizes = [ 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32 ];
     const fontSizes = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 ];
     const lineHeights = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0];
+    const marginSizes = [ 0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500 ];
     const textAlignments = ["publisher", "left", "justify"];
     const columnOptions = [ColumnSettings.Auto, ColumnSettings.OneColumn, ColumnSettings.TwoColumn];
     const day = new DayTheme();
@@ -40,6 +41,7 @@ const app = async (element: HTMLElement, manifestUrl: URL): Promise<IFrameNaviga
         bookThemes: [day, sepia, night],
         bookViews: [paginator, scroller],
         columnOptions: columnOptions,
+        marginSizes: marginSizes,
     });
     return await IFrameNavigator.create({
         element,

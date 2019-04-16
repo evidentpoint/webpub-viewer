@@ -107,6 +107,11 @@ export class SimpleNavigatorView {
 
   }
 
+  // @ts-ignore
+  public updateMarginSize(): void {
+
+  }
+
   public nextScreen(): void {
   }
 

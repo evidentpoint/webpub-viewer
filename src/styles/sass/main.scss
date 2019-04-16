@@ -432,6 +432,7 @@ iframe {
 #iframe-container {
   // opacity: 0;
 //  transition: opacity 100ms ease-in; /* This forces relayout, which makes the TOC flash */
+  margin: 0 auto;
 
   &.left-hover {
     background: linear-gradient(to right, transparentize($ui-light-gray, 0.1), transparentize($ui-light-gray, 0.1) 28%, $ui-white 30%, $ui-white);

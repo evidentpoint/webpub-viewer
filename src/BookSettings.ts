@@ -70,6 +70,9 @@ export interface BookSettingsConfig {
 
     /** Array of column settings */
     columnOptions: string[],
+
+    /** Array of margin sizes */
+    marginSizes: number[],
 }
 
 export default class BookSettings {
@@ -88,6 +91,8 @@ export default class BookSettings {
     private textAlignmentButtons: { [key: string]: HTMLButtonElement };
     private readonly columnLayouts: string[];
     private columnLayoutButtons: { [key: string]: HTMLButtonElement };
+    private readonly marginSizes: number[];
+    private marginSizeButtons: { [key: string]: HTMLButtonElement };
 
     private offlineStatusElement: HTMLElement;
 
@@ -98,6 +103,7 @@ export default class BookSettings {
     private themeChangeCallback: (theme: string) => void = () => {};
     private viewChangeCallback: Function = () => {};
     private columnLayoutChangeCallback: Function = () => {};
+    private marginSizeChangeCallback: Function = () => {};
 
     private selectedFont: BookFont;
     private selectedFontSize: number;
@@ -106,6 +112,7 @@ export default class BookSettings {
     private selectedLineHeight: number;
     private selectedTextAlign: string;
     private selectedColumnLayout: ColumnSettings;
+    private selectedMarginSize: number;
 
     private static readonly SELECTED_FONT_KEY = "settings-selected-font";
     private static readonly SELECTED_FONT_SIZE_KEY = "settings-selected-font-size";
@@ -114,16 +121,17 @@ export default class BookSettings {
     private static readonly SELECTED_ALIGN_KEY = "settings-selected-align";
     private static readonly SELECTED_LINE_HEIGHT_KEY = "settings-selected-line-height";
     private static readonly SELECTED_COLUMN_LAYOUT = "settings-column-layout";
+    private static readonly SELECTED_MARGIN_SIZE = "settings-margin-size";
 
     public static async create(config: BookSettingsConfig) {
         const settings = new this(config.store, config.bookFonts, config.fontSizes, config.bookThemes, config.bookViews,
-            config.lineHeights, config.textAlignments, config.columnOptions);
+            config.lineHeights, config.textAlignments, config.columnOptions, config.marginSizes);
         await settings.initializeSelections(config.defaultFontSize ? config.defaultFontSize : undefined);
         return settings;
     }
 
     protected constructor(store: Store, bookFonts: BookFont[], fontSizes: number[], bookThemes: BookTheme[], bookViews: BookView[]
-        , lineHeights: number[], textAlignments: string[], columnSettings: string[]) {
+        , lineHeights: number[], textAlignments: string[], columnSettings: string[], marginSizes: number[]) {
         this.store = store;
         this.bookFonts = bookFonts;
         this.fontSizes = fontSizes;
@@ -132,6 +140,7 @@ export default class BookSettings {
         this.lineHeights = lineHeights;
         this.textAlignments = textAlignments;
         this.columnLayouts = columnSettings;
+        this.marginSizes = marginSizes;
     }
 
     private async initializeSelections(defaultFontSize?: number): Promise<void> {
@@ -210,6 +219,11 @@ export default class BookSettings {
             this.selectedColumnLayout = <ColumnSettings> await this.store.get(BookSettings.SELECTED_COLUMN_LAYOUT) || ColumnSettings.TwoColumn;
         }
 
+        if (this.marginSizes.length >= 1) {
+            const val = await this.store.get(BookSettings.SELECTED_MARGIN_SIZE) || 0;
+            this.selectedMarginSize = typeof(val) === 'string' ? parseInt(val) : val;
+        }
+
         if (this.bookViews.length >= 1) {
             let selectedView = this.bookViews[0];
             const selectedViewName = await this.store.get(BookSettings.SELECTED_VIEW_KEY);
@@ -238,6 +252,12 @@ export default class BookSettings {
             const lineHeightOptions = optionTemplate("line-height-setting", "decreaseLineHeight", IconLib.icons.decreaseLineHeight, "menuitem", "", "decrease-line-height")
                 + optionTemplate("line-height-setting", "increaseLineHeight", IconLib.icons.increaseLineHeight, "menuitem", "", "increase-line-height");
             sections.push(sectionTemplate(lineHeightOptions));
+        }
+
+        if (this.marginSizes.length > 1) {
+            const marginSizeButtons = optionTemplate("margin-size-setting", "decreaseMarginSize", IconLib.icons.decreaseMarginSize, "menuitem", "", "decrease-margin-size")
+                + optionTemplate("margin-size-setting", "increaseMarginSize", IconLib.icons.increaseMarginSize, "menuitem", "", "increase-margin-size");
+            sections.push(sectionTemplate(marginSizeButtons));
         }
 
         if (this.textAlignments.length > 1) {
@@ -291,6 +311,13 @@ export default class BookSettings {
                 this.lineHeightButtons[lineHeightName] = HTMLUtilities.findRequiredElement(element, "button[class=" + lineHeightName + "]") as HTMLButtonElement;
             }
             this.updateLineHeightButtons();
+        }
+
+        this.marginSizeButtons = {};
+        if (this.marginSizes.length > 1) {
+            for (const marginButtonName of ['decrease-margin-size', 'increase-margin-size']) {
+                this.marginSizeButtons[marginButtonName] = HTMLUtilities.findRequiredElement(element, "button[id=" + marginButtonName + "]") as HTMLButtonElement;
+            }
         }
 
         this.textAlignmentButtons = {};
@@ -375,6 +402,10 @@ export default class BookSettings {
         this.columnLayoutChangeCallback = callback;
     }
 
+    public onMarginSizeChange(callback: (newSize: number) => void) {
+        this.marginSizeChangeCallback = callback;
+    }
+
     private setupEvents(): void {
         for (const font of this.bookFonts) {
             const button = this.fontButtons[font.name];
@@ -431,6 +462,35 @@ export default class BookSettings {
                         setNewLineHeight(newLineHeight);
                     }
                     event.preventDefault();
+                });
+            }
+        }
+
+        if (this.marginSizes.length > 1) {
+            const incrementMarginSize = (incrementValue: number) => {
+                const index = this.marginSizes.indexOf(this.selectedMarginSize);
+                const newIndex = index + incrementValue;
+                if (newIndex < 0 || newIndex >= this.marginSizes.length) {
+                    return;
+                }
+                const newSize = this.marginSizes[newIndex];
+
+                this.selectedMarginSize = newSize;
+                this.marginSizeChangeCallback(newSize);
+                this.storeSelectedMarginSize(newSize);
+            }
+            const decrease = this.marginSizeButtons["decrease-margin-size"];
+            if (decrease) {
+                decrease.addEventListener("click", (event: MouseEvent) => {
+                    event.preventDefault();
+                    incrementMarginSize(-1);
+                });
+            }
+            const increase = this.marginSizeButtons["increase-margin-size"];
+            if (increase) {
+                increase.addEventListener("click", (event: MouseEvent) => {
+                    event.preventDefault();
+                    incrementMarginSize(1);
                 });
             }
         }
@@ -650,6 +710,10 @@ export default class BookSettings {
         return this.selectedColumnLayout;
     }
 
+    public getSelectedMarginSize(): number {
+        return this.selectedMarginSize;
+    }
+
     private async storeSelectedFont(font: BookFont): Promise<void> {
         return this.store.set(BookSettings.SELECTED_FONT_KEY, font.name);
     }
@@ -676,5 +740,9 @@ export default class BookSettings {
 
     private async storeSelectedColumnLayout( columnSettings: ColumnSettings ): Promise<void> {
         return this.store.set(BookSettings.SELECTED_COLUMN_LAYOUT, columnSettings);
+    }
+
+    private async storeSelectedMarginSize( marginSize: number ): Promise<void> {
+        return this.store.set(BookSettings.SELECTED_MARGIN_SIZE, marginSize);
     }
 };

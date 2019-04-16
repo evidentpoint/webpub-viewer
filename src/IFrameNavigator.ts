@@ -321,6 +321,7 @@ export default class IFrameNavigator implements Navigator {
         this.navView.updateFont(settings.getSelectedFont().name);
         this.navView.updateLineHeight(settings.getSelectedLineHeight());
         this.navView.updateTextAlign(settings.getSelectedTextAlign());
+        this.navView.updateMarginSize(settings.getSelectedMarginSize());
 
         this.navigatorPositionChanged();
         this.navView.addLocationChangedListener(async () => {
@@ -403,6 +404,10 @@ export default class IFrameNavigator implements Navigator {
         });
         this.settings.onTextAlignChange((align: string) => {
             this.navView.updateTextAlign(align);
+            this.updatePageBreakMarkers();
+        });
+        this.settings.onMarginSizeChange(async (newSize: number) => {
+            await this.navView.updateMarginSize(newSize);
             this.updatePageBreakMarkers();
         });
 
