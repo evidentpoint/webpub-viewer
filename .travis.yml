@@ -21,6 +21,7 @@ jobs:
       script: npm run test
     - stage: visual-test
       script:
-        - npm install -g backstopjs
-        - npm run static &
-        - npm run visual-test
+        - npm install -g backstopjs@canary
+        - npm run static:docker -- -d
+        - sed -i 's/localhost/static/g' backstop.json
+        - npm run visual-test:docker
