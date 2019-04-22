@@ -161,6 +161,55 @@ This will update the reference screenshots.
 
 You can also use this command when you made a significant cosmetic change or added new features. 
 
+### Docker and BackstopJS
+
+Docker is used to provide consistent cross-platform visual regression testing.
+
+The BackstopJS [Docker usage](https://github.com/garris/BackstopJS#using-docker-for-testing-across-different-environments) feature is used here to accomplish this.
+
+There's a `docker-compose.yml` file in the root that declares a _nginx_ docker image, and a custom named docker network.
+The _nginx_ image is configured to serve the static example through https.
+
+Backstop is configured with a docker command line modified to use the custom network.
+This is to connect it to the static webserver through the custom network.
+
+#### How to use it
+
+We need to rewrite the hostnames in the backstop config, from `localhost` to the docker container hostname, `static`.
+
+```
+sed -i 's/localhost/static/g' backstop.json
+```
+
+After this is modified you can add the post-fix `:docker` to the regular set of commands.
+
+Launch the `https` server locally with:
+
+```
+npm run static:docker
+```
+
+To generate reference screenshots use:
+
+```
+npm run visual-test:init:docker
+```
+
+Then
+
+```
+npm run visual-test:docker
+```
+
+### Travis CI
+
+This repository is set up to execute tests in a CI environment with Travis.
+
+Unit testing is run along with the visual regression tests using the Docker method.
+
+For this to work, updated reference bitmaps need to be committed and pushed to the repository.
+
+
 ## Icons
 
 Icons used in the shared version are part of the official [Material Design Icons](https://material.io/tools/icons/?style=outline) collection (outline version).
