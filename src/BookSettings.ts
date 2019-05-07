@@ -70,9 +70,6 @@ export interface BookSettingsConfig {
 
     /** Array of column settings */
     columnOptions: string[],
-
-    /** Array of margin sizes */
-    marginSizes: number[],
 }
 
 export default class BookSettings {
@@ -93,6 +90,7 @@ export default class BookSettings {
     private columnLayoutButtons: { [key: string]: HTMLButtonElement };
     private readonly marginSizes: number[];
     private marginSizeButtons: { [key: string]: HTMLButtonElement };
+    private marginIncrementVal: number;
 
     private offlineStatusElement: HTMLElement;
 
@@ -113,6 +111,7 @@ export default class BookSettings {
     private selectedTextAlign: string;
     private selectedColumnLayout: ColumnSettings;
     private selectedMarginSize: number;
+    private prevSelectedMarginSize: number;
 
     private static readonly SELECTED_FONT_KEY = "settings-selected-font";
     private static readonly SELECTED_FONT_SIZE_KEY = "settings-selected-font-size";
@@ -125,13 +124,13 @@ export default class BookSettings {
 
     public static async create(config: BookSettingsConfig) {
         const settings = new this(config.store, config.bookFonts, config.fontSizes, config.bookThemes, config.bookViews,
-            config.lineHeights, config.textAlignments, config.columnOptions, config.marginSizes);
+            config.lineHeights, config.textAlignments, config.columnOptions);
         await settings.initializeSelections(config.defaultFontSize ? config.defaultFontSize : undefined);
         return settings;
     }
 
     protected constructor(store: Store, bookFonts: BookFont[], fontSizes: number[], bookThemes: BookTheme[], bookViews: BookView[]
-        , lineHeights: number[], textAlignments: string[], columnSettings: string[], marginSizes: number[]) {
+        , lineHeights: number[], textAlignments: string[], columnSettings: string[]) {
         this.store = store;
         this.bookFonts = bookFonts;
         this.fontSizes = fontSizes;
@@ -140,7 +139,9 @@ export default class BookSettings {
         this.lineHeights = lineHeights;
         this.textAlignments = textAlignments;
         this.columnLayouts = columnSettings;
-        this.marginSizes = marginSizes;
+        // 0 is no margin at all, 1 would be 100% margin
+        this.marginSizes = [0, 1];
+        this.marginIncrementVal = 0.05;
     }
 
     private async initializeSelections(defaultFontSize?: number): Promise<void> {
@@ -221,7 +222,8 @@ export default class BookSettings {
 
         if (this.marginSizes.length >= 1) {
             const val = await this.store.get(BookSettings.SELECTED_MARGIN_SIZE) || 0;
-            this.selectedMarginSize = typeof(val) === 'string' ? parseInt(val) : val;
+            this.selectedMarginSize = typeof(val) === 'string' ? parseFloat(val) : val;
+            this.prevSelectedMarginSize = 0;
         }
 
         if (this.bookViews.length >= 1) {
@@ -468,13 +470,13 @@ export default class BookSettings {
 
         if (this.marginSizes.length > 1) {
             const incrementMarginSize = (incrementValue: number) => {
-                const index = this.marginSizes.indexOf(this.selectedMarginSize);
-                const newIndex = index + incrementValue;
-                if (newIndex < 0 || newIndex >= this.marginSizes.length) {
+                const size = this.getSelectedMarginSize();
+                const newSize = size + incrementValue;
+                if (newSize < this.marginSizes[0] || newSize > this.marginSizes[1]) {
                     return;
                 }
-                const newSize = this.marginSizes[newIndex];
 
+                this.prevSelectedMarginSize = this.selectedMarginSize;
                 this.selectedMarginSize = newSize;
                 this.marginSizeChangeCallback(newSize);
                 this.storeSelectedMarginSize(newSize);
@@ -483,14 +485,14 @@ export default class BookSettings {
             if (decrease) {
                 decrease.addEventListener("click", (event: MouseEvent) => {
                     event.preventDefault();
-                    incrementMarginSize(-1);
+                    incrementMarginSize(-this.marginIncrementVal);
                 });
             }
             const increase = this.marginSizeButtons["increase-margin-size"];
             if (increase) {
                 increase.addEventListener("click", (event: MouseEvent) => {
                     event.preventDefault();
-                    incrementMarginSize(1);
+                    incrementMarginSize(this.marginIncrementVal);
                 });
             }
         }
@@ -712,6 +714,11 @@ export default class BookSettings {
 
     public getSelectedMarginSize(): number {
         return this.selectedMarginSize;
+    }
+
+    public revertSelectedMarginSize(): void {
+        this.selectedMarginSize = this.prevSelectedMarginSize;
+        this.storeSelectedMarginSize(this.prevSelectedMarginSize);
     }
 
     private async storeSelectedFont(font: BookFont): Promise<void> {

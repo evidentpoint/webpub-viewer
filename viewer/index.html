@@ -55,7 +55,6 @@
       var sans = new SansFont.default();
       var fontSizes = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6 ];
       var lineHeights = [ 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.8, 2.0];
-      var marginSizes = [ 0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500 ];
       var textAlignments = ["publisher", "left", "justify"];
       var columnOptions = [BookSettings.ColumnSettings.Auto, BookSettings.ColumnSettings.OneColumn, BookSettings.ColumnSettings.TwoColumn];
       var defaultFontSize = 1;
@@ -81,7 +80,6 @@
         bookThemes: [day, sepia, night],
         bookViews: [paginator, scroller],
         columnOptions: columnOptions,
-        marginSizes: marginSizes,
       }).then(function (settings) {
         IFrameNavigator.default.create({
           element: element,

@@ -24,7 +24,7 @@ import {
 } from 'r2-glue-js';
 
 import { ChapterInfo } from './SimpleNavigatorView';
-import { TextAlign, ColumnSettings } from './BookSettings';
+import BookSettings, { TextAlign, ColumnSettings } from './BookSettings';
 
 export enum RegionScope {
   Viewport = 'viewport',
@@ -37,7 +37,7 @@ interface settingsProps {
   columnLayout: ColumnSettings;
   keyboardCb: (key: string) => {};
   keys: string[];
-  viewport?: HTMLElement;
+  bookSettings: BookSettings;
 };
 
 interface HoverSize {
@@ -66,6 +66,7 @@ export class R2NavigatorView {
   private keyboardCb: (key: string) => {};
   private keys: string[];
   private marginSize: number = 0;
+  private bookSettings: BookSettings;
 
   private customLeftHoverSize: HoverSize = {
     width: 0,
@@ -83,12 +84,9 @@ export class R2NavigatorView {
     this.viewAsVertical = settings != undefined ? settings.viewAsVertical : this.viewAsVertical;
     this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
     this.columnLayout = settings != undefined ? settings.columnLayout : this.columnLayout;
-    if (!settings.viewport) {
-      console.log('No viewport was set in R2NavigatorView');
-      return;
-    }
     this.keyboardCb = settings.keyboardCb;
     this.keys = settings.keys;
+    this.bookSettings = settings.bookSettings;
 
     this.bindOwnMethods();
     this.shouldCheckWindowHref = true;
@@ -286,7 +284,10 @@ export class R2NavigatorView {
   public async updateMarginSize(margin: number): Promise<void> {
     this.marginSize = margin;
 
-    this.updateSize();
+    const hasUpdated = this.updateSize();
+    if (!hasUpdated) {
+      return;
+    }
 
     const loc = this.rendCtx.navigator.getCurrentLocation();
     if (loc) {
@@ -688,9 +689,13 @@ export class R2NavigatorView {
     this.highlightShareLocation = this.highlightShareLocation.bind(this);
   }
 
-  private updateSize(willRefreshLayout: boolean = true): void {
+  private updateSize(willRefreshLayout: boolean = true): boolean {
     const availableWidth = this.getAvailableWidth();
     const availableHeight = this.getAvailableHeight();
+    if (availableWidth < 400) {
+      this.bookSettings.revertSelectedMarginSize();
+      return false;
+    }
 
     this.viewportRoot.style.width = `${availableWidth}px`;
     this.viewportRoot.style.height = `${availableHeight}px`;
@@ -701,11 +706,17 @@ export class R2NavigatorView {
 
     const viewportSize = this.viewAsVertical ? viewportHeight : viewportWidth;
     const viewportSize2nd = this.viewAsVertical ? viewportWidth : viewportHeight;
+    this.rendCtx.rendition.updateViewSettings([{
+      name: SettingName.MaxColumnWidth,
+      value: viewportWidth,
+    }]);
     this.rendCtx.rendition.viewport.setViewportSize(viewportSize, viewportSize2nd);
     this.rendCtx.rendition.viewport.setPrefetchSize(Math.ceil(availableWidth * 0.1));
     if (willRefreshLayout) {
       this.rendCtx.rendition.refreshPageLayout();
     }
+
+    return true;
   }
 
   private viewportContentChanged(): void {
@@ -761,19 +772,30 @@ export class R2NavigatorView {
 
   // Get available width for iframe container to sit within
   private getAvailableWidth(): number {
-      const prevBtn = document.getElementById('left-control-container');
+      const prevBtn = document.getElementById('prev-page-btn');
+      const prevMarkerContainer = document.getElementById('left-page-marker-container');
       let prevBtnWidth = 0;
       if (prevBtn) {
           const rect = prevBtn.getBoundingClientRect();
           prevBtnWidth = rect.width;
       }
-      const nextBtn = document.getElementById('right-control-container');
+      if (prevMarkerContainer) {
+        const rect = prevMarkerContainer.getBoundingClientRect();
+        prevBtnWidth += rect.width;
+      }
+      const nextBtn = document.getElementById('next-page-btn');
+      const nextMarkerContainer = document.getElementById('right-page-marker-container');
       let nextBtnWidth = 0;
       if (nextBtn) {
           const rect = nextBtn.getBoundingClientRect();
           nextBtnWidth = rect.width;
       }
+      if (nextMarkerContainer) {
+        const rect = nextMarkerContainer.getBoundingClientRect();
+        nextBtnWidth += rect.width;
+      }
 
-      return window.innerWidth - prevBtnWidth - nextBtnWidth - (this.marginSize * 2);
+      const width = document.body.clientWidth;
+      return width - prevBtnWidth - nextBtnWidth - (width * this.marginSize);
   }
 }

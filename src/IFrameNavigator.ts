@@ -375,10 +375,10 @@ export default class IFrameNavigator implements Navigator {
         this.navView = new R2NavigatorView({
             viewAsVertical: shouldScroll,
             enableScroll: shouldScroll,
-            viewport: this.iframeRoot,
             columnLayout: columnLayout,
             keyboardCb: this.handleKeyboardNavigation.bind(this),
             keys: keys,
+            bookSettings: this.settings,
         });
         this.pageBreakMarkers.setNavView(this.navView);
 
