@@ -241,6 +241,15 @@ export class R2NavigatorView {
     this.rendCtx.rendition.updateViewSettings(lineHeightSettings);
   }
 
+  public updateColumnGap(newGap: number): void {
+    const lineHeightSettings = [{
+      name: SettingName.ColumnGap,
+      value: newGap,
+    }];
+
+    this.rendCtx.rendition.updateViewSettings(lineHeightSettings);
+  }
+
   public updateTextAlign(newTextAlign: string): void {
     let textAlign = '';
     if (newTextAlign === TextAlign.Justify) {
@@ -339,9 +348,11 @@ export class R2NavigatorView {
     if (this.resizer) {
       this.resizer.stopListenResize();
     }
-    while (this.viewportRoot.hasChildNodes()) {
-      const child = this.viewportRoot.lastChild!;
-      this.viewportRoot.removeChild(child);
+    if (this.viewportRoot) {
+      while (this.viewportRoot.hasChildNodes()) {
+        const child = this.viewportRoot.lastChild!;
+        this.viewportRoot.removeChild(child);
+      }
     }
   }
 
@@ -359,6 +370,9 @@ export class R2NavigatorView {
     this.addLocationChangedListener(() => {
       this.viewportContentChanged();
     });
+
+    // Default column gap
+    this.updateColumnGap(60);
 
     this.updateSize(false);
     let spreadMode = SpreadMode.FitViewportDoubleSpread;
