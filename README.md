@@ -2,19 +2,15 @@
 
 A viewer application for web publications, based on [NYPL’s prototype](https://github.com/NYPL-Simplified/webpub-viewer), which is itself based on [Hadrien Gardeur’s proof of concept](https://github.com/HadrienGardeur/webpub-viewer).
 
-## About the Jellybooks-shared branch
-
-This branch is meant to host changes and improvements that [Jellybooks](https://www.jellybooks.com) can share with the larger community.
-
 ## Quickstart
 
-Clone this repo, `cd` the directory, checkout the `jellybooks-branch` then
+Clone this repo, `cd` the directory, checkout the `master` then
 
 ```
 npm install
 ```
 
-This should run the `npm prepublish` script as well, transpiling the TS and SASS files into the `dist` and `viewer` folders.
+This should run the `npm run build` script as well, transpiling the TS and SASS files into the `dist` and `viewer` folders.
 
 You can run automated tests with
 
@@ -25,7 +21,7 @@ npm test
 and transpile at any time with
 
 ```
-npm run prepublish
+npm run build
 ```
 
 ## Examples
@@ -80,9 +76,9 @@ For the origin to be considered the same, protocol (`http/https`), host and port
 
 ### Streamed
 
-The `examples/streamed` folder contains the webpub-viewer (`readers/reader-JBKS` folder), the r2-streamer-js (ES6/ES2015 bundle in `server` folder) and example files (`epubs` folder).
+The `examples/streamed` folder contains the webpub-viewer (`misc/readers/reader-NYPL` folder) and example files (`epubs` folder).
 
-In this example, assets are served by the r2-streamer-js (in-memory model). You can open them using 3 iterations of the webpub-viewer: Hadrien Gardeur’s (the original prototype), NYPL’s, and Jellybooks’.
+In this example, assets are served by the r2-streamer-js (in-memory model). You can open them using different reader implementations. This iteration of webpub-viewer is labelled as "Reader NYPL".
 
 This example runs on `http` to get around Service Workers issues across all available readers so you don’t need to do anything.
 
@@ -164,6 +160,55 @@ npm run visual-test:update
 This will update the reference screenshots.
 
 You can also use this command when you made a significant cosmetic change or added new features. 
+
+### Docker and BackstopJS
+
+Docker is used to provide consistent cross-platform visual regression testing.
+
+The BackstopJS [Docker usage](https://github.com/garris/BackstopJS#using-docker-for-testing-across-different-environments) feature is used here to accomplish this.
+
+There's a `docker-compose.yml` file in the root that declares a _nginx_ docker image, and a custom named docker network.
+The _nginx_ image is configured to serve the static example through https.
+
+Backstop is configured with a docker command line modified to use the custom network.
+This is to connect it to the static webserver through the custom network.
+
+#### How to use it
+
+We need to rewrite the hostnames in the backstop config, from `localhost` to the docker container hostname, `static`.
+
+```
+sed -i 's/localhost/static/g' backstop.json
+```
+
+After this is modified you can add the post-fix `:docker` to the regular set of commands.
+
+Launch the `https` server locally with:
+
+```
+npm run static:docker
+```
+
+To generate reference screenshots use:
+
+```
+npm run visual-test:init:docker
+```
+
+Then
+
+```
+npm run visual-test:docker
+```
+
+### Travis CI
+
+This repository is set up to execute tests in a CI environment with Travis.
+
+Unit testing is run along with the visual regression tests using the Docker method.
+
+For this to work, updated reference bitmaps need to be committed and pushed to the repository.
+
 
 ## Icons
 
