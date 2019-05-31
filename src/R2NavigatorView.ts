@@ -15,13 +15,15 @@ import {
 
 import {
   RegionHandling,
-  Region,
   SelectionHandling,
   GenerateCFI,
-  Highlighting,
-  IHighlightDeletionOptions,
-  KeyHandling,
-} from 'r2-glue-js';
+  Highlighting
+} from "@evidentpoint/readium-glue-modules";
+
+import { KeyHandling } from "@readium/glue-modules/lib/keyHandling/caller";
+
+import { Region } from "@evidentpoint/readium-glue-modules/lib/regionHandling/interface";
+import { IHighlightDeletionOptions } from "@evidentpoint/readium-glue-modules/lib/highlighting/interface";
 
 import { ChapterInfo } from './SimpleNavigatorView';
 import BookSettings, { TextAlign, ColumnSettings } from './BookSettings';
@@ -528,8 +530,8 @@ export class R2NavigatorView {
   }
 
   private addSelectionHandling(iframe: HTMLIFrameElement): void {
-    const selectionHandling = new SelectionHandling(iframe.contentWindow!);
-    const cfiGenerator = new GenerateCFI(iframe.contentWindow!);
+    const selectionHandling = new SelectionHandling('selection-handling', iframe.contentWindow!);
+    const cfiGenerator = new GenerateCFI('generate-cfi', iframe.contentWindow!);
     this.addGlueHandler(selectionHandling, iframe);
     this.addGlueHandler(cfiGenerator, iframe);
     const href = iframe.getAttribute('data-src');
@@ -551,18 +553,22 @@ export class R2NavigatorView {
   }
 
   private addKeyboardHandling(iframe: HTMLIFrameElement): void {
-      const keyHandling = new KeyHandling(iframe.contentWindow!);
+      const keyHandling = new KeyHandling('key-handling', iframe.contentWindow!);
       this.addGlueHandler(keyHandling, iframe);
 
       this.keys.forEach((key: string) => {
-        keyHandling.addKeyEventListener('body', 'keydown', key, () => {
-          this.keyboardCb(key);
-        });
+        keyHandling.addKeyEventListener(
+          'keydown',
+          () => {
+            this.keyboardCb(key);
+          },
+          { target: 'body' },
+        );
       });
   }
 
   private addHighlightHandling(iframe: HTMLIFrameElement): void {
-    const highlighting = new Highlighting(iframe.contentWindow!);
+    const highlighting = new Highlighting('highlighting', iframe.contentWindow!);
     const href = iframe.getAttribute('data-src') || '';
     this.addGlueHandler(highlighting, iframe, [], () => {
       this.hrefToHighlightingMap.delete(href);
@@ -572,7 +578,7 @@ export class R2NavigatorView {
   }
 
   private addRegionHandling(iframe: HTMLIFrameElement): void {
-    const regionHandling = new RegionHandling(iframe.contentWindow!);
+    const regionHandling = new RegionHandling('region-handling', iframe.contentWindow!);
     const remover = (glue: GlueHandler) => {
       this.glueToRegionUpdaterMap.delete(glue);
     }
