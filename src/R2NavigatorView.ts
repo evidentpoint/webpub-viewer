@@ -28,6 +28,15 @@ import { IHighlightDeletionOptions } from "@evidentpoint/readium-glue-modules/li
 import { ChapterInfo } from './SimpleNavigatorView';
 import BookSettings, { TextAlign, ColumnSettings } from './BookSettings';
 
+//@ts-ignore
+import GlueSharedScriptURI from '@readium/glue-shared/dist/ReadiumGlue-shared.js';
+//@ts-ignore
+import GlueRPCScriptURI from '@readium/glue-rpc/dist/ReadiumGlue-rpc.js';
+//@ts-ignore
+import GlueServicesScriptURI from '@readium/glue-modules/dist/ReadiumGlue-services.js';
+//@ts-ignore
+import GlueEPServicesScriptURI from '@evidentpoint/readium-glue-modules/dist/ReadiumGlue-services-evidentpoint.js';
+
 export enum RegionScope {
   Viewport = 'viewport',
   Document = 'document',
@@ -38,7 +47,6 @@ interface settingsProps {
   enableScroll: boolean;
   columnLayout: ColumnSettings;
   keyboardCb: (key: string) => {};
-  keys: string[];
   bookSettings: BookSettings;
 };
 
@@ -66,7 +74,6 @@ export class R2NavigatorView {
   private currentShareLinkHref: string = '';
   private preventPageChange: boolean = false;
   private keyboardCb: (key: string) => {};
-  private keys: string[];
   private marginSize: number = 0;
   private bookSettings: BookSettings;
 
@@ -87,7 +94,6 @@ export class R2NavigatorView {
     this.enableScroll = settings != undefined ? settings.enableScroll : this.enableScroll;
     this.columnLayout = settings != undefined ? settings.columnLayout : this.columnLayout;
     this.keyboardCb = settings.keyboardCb;
-    this.keys = settings.keys;
     this.bookSettings = settings.bookSettings;
 
     this.bindOwnMethods();
@@ -361,7 +367,52 @@ export class R2NavigatorView {
   public async loadPublication(pubUrl: string, root: HTMLElement): Promise<void> {
     const publication: Publication = await Publication.fromURL(pubUrl);
     const loader = new IFrameLoader(publication.getBaseURI());
-    loader.setReadiumCssBasePath('/readerJBKS/readium-css');
+    loader.setReadiumCssBasePath(new URL('./', document.baseURI).href);
+
+    const glueInitScript = `
+      new ReadiumGlueRPC.Host('selection-handling', ReadiumGlueServices.SelectionHandlingService);
+      new ReadiumGlueRPC.Host('key-handling', ReadiumGlueServices.KeyHandling);
+      new ReadiumGlueRPC.Host('highlighting', ReadiumGlueServices.HighlightingService);
+      new ReadiumGlueRPC.Host('region-handling', ReadiumGlueServices.RegionHandlingService);
+      new ReadiumGlueRPC.Host('generate-cfi', ReadiumGlueServices.GenerateCFIService);
+    `;
+    const blob = new Blob([glueInitScript], { type: 'text/javascript' });
+
+    const blobUrlTest = URL.createObjectURL(blob);
+
+    loader.registerInjectableResources([
+      {
+        href: new URL(GlueSharedScriptURI, document.baseURI).href,
+        type: 'text/javascript',
+        target: 'head',
+        insertion: 'append',
+      },
+      {
+        href: new URL(GlueRPCScriptURI, document.baseURI).href,
+        type: 'text/javascript',
+        target: 'head',
+        insertion: 'append',
+      },
+      {
+        href: new URL(GlueServicesScriptURI, document.baseURI).href,
+        type: 'text/javascript',
+        target: 'head',
+        insertion: 'append',
+      },
+      {
+        href: new URL(GlueEPServicesScriptURI, document.baseURI).href,
+        type: 'text/javascript',
+        target: 'head',
+        insertion: 'append',
+      },
+      {
+        href: blobUrlTest,
+        type: 'text/javascript',
+        target: 'head',
+        insertion: 'append',
+      },
+    ]);
+
     const cvf = new R2ContentViewFactory(loader);
     const rendition = new Rendition(publication, root, cvf);
     rendition.setViewAsVertical(this.viewAsVertical);
@@ -418,7 +469,6 @@ export class R2NavigatorView {
       console.log('Highlighting not found');
       return '';
     }
-
     if (bool) {
       highlighter.createHighlight(id || cfi);
     } else {
@@ -536,13 +586,10 @@ export class R2NavigatorView {
     this.addGlueHandler(cfiGenerator, iframe);
     const href = iframe.getAttribute('data-src');
 
-    selectionHandling.addEventListener('body', async (selectionEvent: any) => {
-      const selection = selectionEvent[0];
-
+    selectionHandling.addEventListener('body', async (selection: any) => {
       if (selection.text.length !== 0 && href) {
         this.preventPageChange = true;
-        cfiGenerator.fromRangeData(selection.rangeData, (cfiEvent: any) => {
-          const cfi = cfiEvent[0];
+        cfiGenerator.fromRangeData(selection.rangeData, (cfi: any) => {
           this.currentShareLinkCfi = cfi;
           this.currentShareLinkHref = href;
         });
@@ -556,15 +603,13 @@ export class R2NavigatorView {
       const keyHandling = new KeyHandling('key-handling', iframe.contentWindow!);
       this.addGlueHandler(keyHandling, iframe);
 
-      this.keys.forEach((key: string) => {
-        keyHandling.addKeyEventListener(
-          'keydown',
-          () => {
-            this.keyboardCb(key);
-          },
-          { target: 'body' },
-        );
-      });
+      keyHandling.addKeyEventListener(
+        'keydown',
+        (event: KeyboardEvent) => {
+          this.keyboardCb(event.key);
+        },
+        { target: 'html' },
+      );
   }
 
   private addHighlightHandling(iframe: HTMLIFrameElement): void {

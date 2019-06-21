@@ -9,7 +9,7 @@ import ColumnsPaginatedBookView from "../src/ColumnsPaginatedBookView";
 import NightTheme from "../src/NightTheme";
 import ScrollingBookView from "../src/ScrollingBookView";
 import LocalAnnotator from "../src/LocalAnnotator";
-import BookSettings from "../src/BookSettings";
+import BookSettings, { ColumnSettings } from "../src/BookSettings";
 import IFrameNavigator from "../src/IFrameNavigator";
 
 var getURLQueryParams = function() {
@@ -67,9 +67,9 @@ var lineHeights = [
 ];
 var textAlignments = ["publisher", "left", "justify"];
 var columnOptions = [
-  BookSettings.ColumnSettings.Auto,
-  BookSettings.ColumnSettings.OneColumn,
-  BookSettings.ColumnSettings.TwoColumn
+  ColumnSettings.Auto,
+  ColumnSettings.OneColumn,
+  ColumnSettings.TwoColumn
 ];
 var defaultFontSize = 1;
 var day = new DayTheme();

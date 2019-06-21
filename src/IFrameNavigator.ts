@@ -364,12 +364,6 @@ export default class IFrameNavigator implements Navigator {
             this.navView.destroy();
         }
 
-        const keys: string[] = [];
-        const keyStrings = Object.keys(this.keyToActionMap);
-        keyStrings.forEach((key: string) => {
-            keys.push(key);
-        });
-
         const shouldScroll = this.settings.getSelectedView() === this.scroller;
         const columnLayout = this.settings.getSelectedColumnLayout();
         this.navView = new R2NavigatorView({
@@ -377,7 +371,6 @@ export default class IFrameNavigator implements Navigator {
             enableScroll: shouldScroll,
             columnLayout: columnLayout,
             keyboardCb: this.handleKeyboardNavigation.bind(this),
-            keys: keys,
             bookSettings: this.settings,
         });
         this.pageBreakMarkers.setNavView(this.navView);

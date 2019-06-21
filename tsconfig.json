@@ -27,6 +27,7 @@
     ]
   },
   "exclude": [
-    "src/sw.ts"
+    "src/sw.ts",
+    "test/**/*"
   ]
 }

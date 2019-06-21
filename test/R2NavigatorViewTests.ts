@@ -7,9 +7,7 @@ import {
     Navigator,
 } from '@readium/navigator-web';
 
-import {
-    Highlighting,
-} from 'r2-glue-js';
+import { Highlighting } from "@evidentpoint/readium-glue-modules";
 
 import { R2NavigatorView } from "../src/R2NavigatorView";
 import { ColumnSettings } from "../src/BookSettings";
@@ -61,7 +59,6 @@ describe('R2NavigatorView', () => {
         navView = new R2NavigatorView({
             viewAsVertical: false,
             enableScroll: false,
-            viewport: iframeContainer,
             columnLayout: ColumnSettings.TwoColumn,
             keyboardCb: handleKeyboardNavigation,
             keys: [],

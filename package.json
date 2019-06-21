@@ -29,13 +29,7 @@
     "embedded": "node \"./examples/embedded/embedded-server.js\"",
     "clean": "rimraf node_modules lib dist",
     "prepublishOnly": "npm run test",
-    "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'",
-    "build:streamed": "npm run build && npm run copy:all",
-    "copy:all": "npm run copy:readium-css && npm run copy:r2-navigator && npm run copy:r2-glue-js && npm run copy:streamed",
-    "copy:readium-css": "cp -r ./node_modules/readium-css/css/dist viewer/readium-css",
-    "copy:r2-glue-js": "cp ./node_modules/@evidentpoint viewer/r2-glue-js.js",
-    "copy:r2-navigator": "mkdir -p viewer/@readium && cp ./node_modules/@readium/navigator-web/dist/readium-navigator-web.umd.js viewer/@readium/navigator-web.js",
-    "copy:streamed": "cpx 'viewer/**/*.{html,css,js}' examples/streamed/misc/readers/reader-NYPL"
+    "about": "echo 'Do not update @types/parse5 to version 5 or else it will break jsdom typings!'"
   },
   "dependencies": {
     "@evidentpoint/readium-glue-modules": "^1.2.2",
@@ -60,17 +54,18 @@
     "chai": "^4.1.2",
     "cpx": "^1.5.0",
     "express": "^4.16.4",
+    "file-loader": "^4.0.0",
     "jsdom": "^9.8.3",
     "jsdom-global": "^2.1.0",
-    "reflect-metadata": "^0.1.13",
     "mocha": "^6.0.2",
     "node-sass": "^4.11.0",
     "r2-streamer-js": "1.0.7",
+    "reflect-metadata": "^0.1.13",
     "requirejs": "^2.3.6",
     "rimraf": "^2.6.3",
     "sinon": "^7.2.7",
-    "typescript": "^3.2.2",
     "ts-loader": "^6.0.2",
+    "typescript": "^3.2.2",
     "webpack": "^4.32.2",
     "webpack-cli": "^3.3.2"
   }

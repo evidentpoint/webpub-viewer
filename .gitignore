@@ -9,10 +9,15 @@ dist*.css.map
 src/styles/.sass-cache
 
 viewer/webpub-viewer.js
+viewer/webpub-viewer.js.map
+viewer/Readium*.js
+viewer/Readium*.css
 viewer/sw.js
 viewer/main.css
 
 examples/static/viewer/*
+examples/embedded/alice
+examples/streamed/misc
 
 # check-in reference for CI to use
 #backstop_data/bitmaps_reference
