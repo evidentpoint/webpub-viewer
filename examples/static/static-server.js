@@ -1,6 +1,7 @@
 const https = require("https");
 const fs = require("fs");
 const express = require("express");
+const path = require("path");
 
 const options = {
     key: fs.readFileSync("webpubViewer.pem"),
@@ -21,7 +22,7 @@ server.listen( port, (err) => {
   }
 });
 
-app.use("/viewer", express.static(__dirname + "/viewer"));
+app.use("/viewer", express.static(path.resolve(__dirname + "/../../viewer")));
 app.use("/TheCallOfTheWild", express.static(__dirname + "/TheCallOfTheWild"));
 app.use("/AJourneyToTheCentreOfTheEarth", express.static(__dirname + "/AJourneyToTheCentreOfTheEarth"));
 app.use("/backstop", express.static(__dirname + "/backstop"));
